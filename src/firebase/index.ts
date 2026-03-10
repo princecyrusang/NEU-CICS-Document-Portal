@@ -6,14 +6,10 @@ import { getAuth, Auth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 
-// Initialize Firebase App instance
+// Initialize Firebase App instance safely for SSR and CSR
 let firebaseApp: FirebaseApp;
 if (!getApps().length) {
-  try {
-    firebaseApp = initializeApp();
-  } catch (e) {
-    firebaseApp = initializeApp(firebaseConfig);
-  }
+  firebaseApp = initializeApp(firebaseConfig);
 } else {
   firebaseApp = getApp();
 }

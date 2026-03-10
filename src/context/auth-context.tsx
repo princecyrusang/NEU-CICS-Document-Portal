@@ -42,10 +42,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (authLoading) return;
 
       if (user) {
-        // Domain Restriction logic
+        // Domain Restriction logic: Only allow @neu.edu.ph emails
         if (!user.email?.endsWith("@neu.edu.ph")) {
           await signOut(auth);
           router.push("/login?error=invalid_domain");
+          setLoading(false);
           return;
         }
 
@@ -59,6 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (data.isBlocked) {
             await signOut(auth);
             router.push("/login?error=blocked");
+            setLoading(false);
             return;
           }
           
@@ -67,6 +69,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Onboarding check: Redirect if undergraduateProgramId is missing
           if (!data.undergraduateProgramId && pathname !== "/onboarding") {
             router.push("/onboarding");
+          } else if (data.undergraduateProgramId && pathname === "/onboarding") {
+            router.push("/dashboard");
+          } else if (data.undergraduateProgramId && pathname === "/login") {
+            router.push("/dashboard");
           }
         } else {
           // Create initial profile for new @neu.edu.ph user
@@ -101,6 +107,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     router.push("/login");
   };
 
+  // Prevent flash of unauthenticated content during loading
   const isInitialLoading = authLoading || (user && loading);
 
   return (

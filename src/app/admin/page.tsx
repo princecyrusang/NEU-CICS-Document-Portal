@@ -20,7 +20,7 @@ import {
   FileText, Download
 } from "lucide-react";
 import Link from "next/link";
-import { NEU_PROGRAMS, DOCUMENT_CATEGORIES } from "@/app/lib/programs";
+import { ADMIN_PROGRAM_OPTIONS, DOCUMENT_CATEGORIES } from "@/app/lib/programs";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
@@ -62,7 +62,7 @@ export default function AdminPage() {
   const [newDoc, setNewDoc] = useState({
     title: "",
     category: "",
-    program: "",
+    program: "All CICS",
     file: null as File | null
   });
 
@@ -110,7 +110,7 @@ export default function AdminPage() {
       });
 
       toast({ title: "Success", description: "Document uploaded successfully!" });
-      setNewDoc({ title: "", category: "", program: "", file: null });
+      setNewDoc({ title: "", category: "", program: "All CICS", file: null });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Upload Failed", description: error.message });
     } finally {
@@ -275,11 +275,11 @@ export default function AdminPage() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Academic Program</label>
+                      <label className="text-sm font-medium">Target Academic Program</label>
                       <Select onValueChange={(v) => setNewDoc({...newDoc, program: v})} value={newDoc.program}>
                         <SelectTrigger className="h-12"><SelectValue placeholder="Select Program" /></SelectTrigger>
                         <SelectContent>
-                          {NEU_PROGRAMS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                          {ADMIN_PROGRAM_OPTIONS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>

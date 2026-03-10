@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2 } from "lucide-react";
+import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, Info } from "lucide-react";
 import { DOCUMENT_CATEGORIES } from "@/app/lib/programs";
 import Link from "next/link";
 
@@ -28,9 +28,16 @@ export default function DocumentGalleryPage() {
       const docCat = doc.category || doc.documentType || "Other";
       const matchesSearch = doc.title.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === "all" || docCat === categoryFilter;
-      return matchesSearch && matchesCategory;
+      
+      // Program visibility logic: Students see 'All CICS' + their own program
+      // Admins see everything.
+      const isVisibleForUser = profile?.role === 'admin' || 
+                               doc.program === 'All CICS' || 
+                               doc.program === profile?.program;
+
+      return matchesSearch && matchesCategory && isVisibleForUser;
     });
-  }, [documents, searchTerm, categoryFilter]);
+  }, [documents, searchTerm, categoryFilter, profile]);
 
   const handleDownload = async (docId: string, fileUrl: string) => {
     const docRef = doc(db, "documents", docId);
@@ -104,16 +111,27 @@ export default function DocumentGalleryPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredDocs.map((doc) => (
-              <Card key={doc.id} className="border-none shadow-md hover:shadow-lg transition-all">
+              <Card key={doc.id} className="border-none shadow-md hover:shadow-lg transition-all group overflow-hidden">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start mb-2">
-                    <Badge variant="secondary">{doc.category || doc.documentType}</Badge>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="secondary">{doc.category || doc.documentType}</Badge>
+                      {doc.program === 'All CICS' && (
+                        <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 flex gap-1 items-center">
+                          <Info className="w-3 h-3" /> All Programs
+                        </Badge>
+                      )}
+                    </div>
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Download className="w-3 h-3" /> {doc.downloadCount}
                     </span>
                   </div>
-                  <CardTitle className="text-lg font-headline line-clamp-1">{doc.title}</CardTitle>
-                  <CardDescription>{doc.program}</CardDescription>
+                  <CardTitle className="text-lg font-headline line-clamp-1 group-hover:text-primary transition-colors">
+                    {doc.title}
+                  </CardTitle>
+                  <CardDescription className="flex items-center gap-1">
+                    {doc.program}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between mt-4">
@@ -123,7 +141,7 @@ export default function DocumentGalleryPage() {
                     <Button 
                       size="sm" 
                       onClick={() => handleDownload(doc.id, doc.fileUrl)}
-                      className="gap-2"
+                      className="gap-2 shadow-sm"
                     >
                       <Download className="w-4 h-4" /> Download
                     </Button>
@@ -135,8 +153,8 @@ export default function DocumentGalleryPage() {
         )}
 
         {!isLoading && filteredDocs.length === 0 && (
-          <div className="text-center py-20 border-2 border-dashed rounded-xl">
-            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <div className="text-center py-20 border-2 border-dashed rounded-xl bg-muted/20">
+            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
             <h3 className="text-xl font-semibold">No documents found</h3>
             <p className="text-muted-foreground">Try adjusting your search or filters.</p>
           </div>

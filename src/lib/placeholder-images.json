@@ -1,3 +1,16 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-campus",
+      "description": "Clean modern university campus buildings",
+      "imageUrl": "https://picsum.photos/seed/neu-campus/1200/600",
+      "imageHint": "university campus"
+    },
+    {
+      "id": "student-life",
+      "description": "Students studying together in a modern library",
+      "imageUrl": "https://picsum.photos/seed/neu-students/800/500",
+      "imageHint": "students library"
+    }
+  ]
 }

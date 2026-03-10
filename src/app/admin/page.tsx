@@ -94,10 +94,12 @@ export default function AdminPage() {
 
     setUploading(true);
     try {
+      // Storage Upload with contextual error reporting
       const storageRef = ref(storage, `documents/${Date.now()}_${newDoc.file.name}`);
       const snapshot = await uploadBytes(storageRef, newDoc.file);
       const fileUrl = await getDownloadURL(snapshot.ref);
 
+      // Firestore Metadata update
       await addDoc(collection(db, "documents"), {
         title: newDoc.title,
         category: newDoc.category,
@@ -112,7 +114,17 @@ export default function AdminPage() {
       toast({ title: "Success", description: "Document uploaded successfully!" });
       setNewDoc({ title: "", category: "", program: "All CICS", file: null });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Upload Failed", description: error.message });
+      // Enhanced error surfacing for storage issues
+      const errorCode = error.code || "unknown";
+      const errorMessage = error.message || "An unexpected error occurred during upload.";
+      
+      console.error("Upload error details:", error);
+      
+      toast({ 
+        variant: "destructive", 
+        title: "Upload Failed", 
+        description: `[${errorCode}] ${errorMessage}. Please verify your network and Storage bucket status.`
+      });
     } finally {
       setUploading(false);
     }

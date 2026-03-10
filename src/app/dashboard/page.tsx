@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -12,13 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2 } from "lucide-react";
-import { DOCUMENT_TYPES } from "@/app/lib/programs";
+import { DOCUMENT_CATEGORIES } from "@/app/lib/programs";
 import Link from "next/link";
 
 export default function DocumentGalleryPage() {
   const { profile, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
   const docsQuery = useMemoFirebase(() => collection(db, "documents"), []);
   const { data: documents, isLoading } = useCollection(docsQuery);
@@ -26,11 +25,12 @@ export default function DocumentGalleryPage() {
   const filteredDocs = useMemo(() => {
     if (!documents) return [];
     return documents.filter(doc => {
+      const docCat = doc.category || doc.documentType || "Other";
       const matchesSearch = doc.title.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesType = typeFilter === "all" || doc.documentType === typeFilter;
-      return matchesSearch && matchesType;
+      const matchesCategory = categoryFilter === "all" || docCat === categoryFilter;
+      return matchesSearch && matchesCategory;
     });
-  }, [documents, searchTerm, typeFilter]);
+  }, [documents, searchTerm, categoryFilter]);
 
   const handleDownload = async (docId: string, fileUrl: string) => {
     const docRef = doc(db, "documents", docId);
@@ -79,17 +79,17 @@ export default function DocumentGalleryPage() {
             />
           </div>
           <div className="flex gap-4 w-full md:w-auto">
-            <Select onValueChange={setTypeFilter} defaultValue="all">
-              <SelectTrigger className="w-full md:w-[200px]">
+            <Select onValueChange={setCategoryFilter} defaultValue="all">
+              <SelectTrigger className="w-full md:w-[250px]">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4" />
-                  <SelectValue placeholder="All Types" />
+                  <SelectValue placeholder="All Categories" />
                 </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {DOCUMENT_TYPES.map(type => (
-                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
+                {DOCUMENT_CATEGORIES.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -107,7 +107,7 @@ export default function DocumentGalleryPage() {
               <Card key={doc.id} className="border-none shadow-md hover:shadow-lg transition-all">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start mb-2">
-                    <Badge variant="secondary">{doc.documentType}</Badge>
+                    <Badge variant="secondary">{doc.category || doc.documentType}</Badge>
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Download className="w-3 h-3" /> {doc.downloadCount}
                     </span>

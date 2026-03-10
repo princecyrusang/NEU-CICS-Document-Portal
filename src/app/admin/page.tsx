@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -21,7 +20,7 @@ import {
   FileText, Download
 } from "lucide-react";
 import Link from "next/link";
-import { NEU_PROGRAMS, DOCUMENT_TYPES } from "@/app/lib/programs";
+import { NEU_PROGRAMS, DOCUMENT_CATEGORIES } from "@/app/lib/programs";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
@@ -53,7 +52,8 @@ export default function AdminPage() {
     if (!documents) return [];
     const typeCounts: Record<string, number> = {};
     documents.forEach(doc => {
-      typeCounts[doc.documentType] = (typeCounts[doc.documentType] || 0) + 1;
+      const cat = doc.category || doc.documentType || "Other";
+      typeCounts[cat] = (typeCounts[cat] || 0) + 1;
     });
     return Object.entries(typeCounts).map(([name, value]) => ({ name, value }));
   }, [documents]);
@@ -61,7 +61,7 @@ export default function AdminPage() {
   // Form State
   const [newDoc, setNewDoc] = useState({
     title: "",
-    type: "",
+    category: "",
     program: "",
     file: null as File | null
   });
@@ -87,7 +87,7 @@ export default function AdminPage() {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newDoc.file || !newDoc.title || !newDoc.type || !newDoc.program) {
+    if (!newDoc.file || !newDoc.title || !newDoc.category || !newDoc.program) {
       toast({ variant: "destructive", title: "Error", description: "Please fill all fields." });
       return;
     }
@@ -100,7 +100,7 @@ export default function AdminPage() {
 
       await addDoc(collection(db, "documents"), {
         title: newDoc.title,
-        documentType: newDoc.type,
+        category: newDoc.category,
         program: newDoc.program,
         fileUrl,
         uploadDate: new Date().toISOString(),
@@ -110,7 +110,7 @@ export default function AdminPage() {
       });
 
       toast({ title: "Success", description: "Document uploaded successfully!" });
-      setNewDoc({ title: "", type: "", program: "", file: null });
+      setNewDoc({ title: "", category: "", program: "", file: null });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Upload Failed", description: error.message });
     } finally {
@@ -207,7 +207,7 @@ export default function AdminPage() {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
+                      <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
                       <YAxis fontSize={12} tickLine={false} axisLine={false} />
                       <Tooltip 
                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
@@ -235,7 +235,7 @@ export default function AdminPage() {
                           <FileText className="w-5 h-5 text-primary" />
                           <div>
                             <p className="text-sm font-medium">{doc.title}</p>
-                            <p className="text-xs text-muted-foreground">{doc.documentType}</p>
+                            <p className="text-xs text-muted-foreground">{doc.category || doc.documentType}</p>
                           </div>
                         </div>
                         <Badge variant="outline">{new Date(doc.uploadDate).toLocaleDateString()}</Badge>
@@ -258,7 +258,7 @@ export default function AdminPage() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Document Title</label>
                     <Input 
-                      placeholder="e.g. CS101 Lab Manual - Week 1" 
+                      placeholder="e.g. OJT Completion Form - 2024" 
                       value={newDoc.title}
                       onChange={(e) => setNewDoc({...newDoc, title: e.target.value})}
                       className="h-12"
@@ -266,11 +266,11 @@ export default function AdminPage() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Document Type</label>
-                      <Select onValueChange={(v) => setNewDoc({...newDoc, type: v})} value={newDoc.type}>
+                      <label className="text-sm font-medium">Document Category</label>
+                      <Select onValueChange={(v) => setNewDoc({...newDoc, category: v})} value={newDoc.category}>
                         <SelectTrigger className="h-12"><SelectValue placeholder="Select Category" /></SelectTrigger>
                         <SelectContent>
-                          {DOCUMENT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                          {DOCUMENT_CATEGORIES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>

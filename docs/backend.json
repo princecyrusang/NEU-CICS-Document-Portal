@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "UserProfile": {
@@ -26,14 +25,14 @@
       "properties": {
         "id": { "type": "string" },
         "title": { "type": "string" },
-        "documentType": { "type": "string", "enum": ["Syllabus", "Lab Manual", "Thesis", "Lecture Notes", "Other"] },
+        "category": { "type": "string", "enum": ["Enrollment & Subjects", "OJT & Internship", "Graduation", "Administrative Requests", "Department Memos", "Other"] },
         "program": { "type": "string" },
         "fileUrl": { "type": "string", "format": "uri" },
         "uploadDate": { "type": "string", "format": "date-time" },
         "downloadCount": { "type": "number" },
         "uploadedBy": { "type": "string" }
       },
-      "required": ["title", "documentType", "program", "fileUrl", "uploadDate", "downloadCount"]
+      "required": ["title", "category", "program", "fileUrl", "uploadDate", "downloadCount"]
     }
   },
   "auth": {

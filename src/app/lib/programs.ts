@@ -1,4 +1,3 @@
-
 export const NEU_PROGRAMS = [
   "BS in Computer Science",
   "BS in Information Technology",
@@ -10,12 +9,13 @@ export const NEU_PROGRAMS = [
 
 export type UndergraduateProgram = (typeof NEU_PROGRAMS)[number];
 
-export const DOCUMENT_TYPES = [
-  "Syllabus",
-  "Lab Manual",
-  "Thesis",
-  "Lecture Notes",
-  "Problem Set",
-  "Reference Material",
+export const DOCUMENT_CATEGORIES = [
+  "Enrollment & Subjects",
+  "OJT & Internship",
+  "Graduation",
+  "Administrative Requests",
+  "Department Memos",
   "Other"
 ] as const;
+
+export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[number];

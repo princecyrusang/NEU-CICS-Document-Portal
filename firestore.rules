@@ -3,89 +3,58 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * CORE PHILOSOPHY
-     * This ruleset enforces a strict user-ownership model for personal profiles and a globally 
-     * accessible reference model for academic programs. Authorization is primarily handled 
-     * through path-based identity verification and document-level status flags.
-     *
-     * DATA STRUCTURE
-     * - /users/{userId}: Private user profiles keyed by Firebase Auth UID.
-     * - /undergraduatePrograms/{programId}: Publicly readable academic metadata.
-     *
-     * KEY SECURITY DECISIONS
-     * - Authorization Independence: User profiles are secured by matching the {userId} wildcard 
-     *   directly against the 'request.auth.uid', removing the need for cross-document lookups.
-     * - Database Access Control (DBAC): The 'isBlocked' boolean on the UserProfile document 
-     *   is used to instantly revoke access to data if a user is restricted by an administrator.
-     * - Relational Integrity: On creation, the rules force the document 'id' field to match 
-     *   the authenticated user's UID to ensure data consistency.
-     * - Prototyping Flexibility: While access is strictly controlled, the specific shape and 
-     *   types of non-identity fields (like 'displayName' or 'photoURL') are not validated 
-     *   to allow for rapid UI iteration.
+     * @description Helper functions for authentication and role-based checks.
      */
-
-    // --- Helper Functions ---
-
-    /** @description Checks if the request is made by a signed-in user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the provided UID matches the authenticated user's UID. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks if the user's profile is not blocked. */
-    function isNotBlocked(userData) {
-      return userData.isBlocked == false;
+    function getUserData(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
     }
 
-    /** @description Verifies ownership and existence for destructive or state-changing operations. */
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
+    function isAdmin() {
+      return isSignedIn() && getUserData(request.auth.uid).role == 'admin';
     }
-
-    // --- Collection Rules ---
 
     /**
-     * @description Rules for the UserProfile collection. Controls access to personal data and onboarding state.
-     * @path /users/{userId}
-     * @allow (get) If the user is authenticated, matches the path UID, and is not blocked.
-     * @deny (update) If the user attempts to change their own 'id' field or if they are blocked.
-     * @principle Path-based ownership combined with attribute-based access control (isBlocked).
+     * @description Rules for the UserProfile collection.
+     * Allows owners to read and create their profiles. 
+     * Restricts updates to prevent role modification and enforces ownership.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId) && isNotBlocked(resource.data);
-      allow list: if isOwner(userId);
+      allow get, list, create: if isOwner(userId);
       
-      // On create, ensure the internal 'id' matches the path and 'isBlocked' is initially false (or as per logic).
-      // We also verify the user is creating their own record.
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      
-      // On update, ensure the user isn't blocked and is not changing their identity field.
-      allow update: if isExistingOwner(userId) && isNotBlocked(resource.data) && request.resource.data.id == resource.data.id;
-      
-      // Deletion is restricted to prevent accidental data loss in the prototype phase.
+      // Allow updates to own profile, but strictly prevent changing the 'role' field.
+      // Also prevents updating 'isBlocked' from the client.
+      allow update: if isOwner(userId) 
+                    && request.resource.data.role == resource.data.role
+                    && request.resource.data.isBlocked == resource.data.isBlocked;
+                    
       allow delete: if false;
     }
 
     /**
-     * @description Rules for the UndergraduateProgram collection. Reference data for onboarding.
-     * @path /undergraduatePrograms/{programId}
-     * @allow (list) Any authenticated user can list programs to choose one during onboarding.
-     * @deny (create) Any write operation from the client side is denied.
-     * @principle Publicly readable reference data with restricted write access.
+     * @description Rules for academic programs. Publicly readable, admin-only writes.
      */
     match /undergraduatePrograms/{programId} {
       allow get, list: if isSignedIn();
-      
-      // Writes are restricted to administrative processes (e.g., Admin SDK or Console).
-      allow create, update, delete: if false;
+      allow write: if isAdmin();
     }
 
-    // --- Global Deny ---
-    // Explicitly deny any access to unspecified collections.
+    /**
+     * @description Placeholder rules for generic documents.
+     */
+    match /documents/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Global deny for everything else.
     match /{path=**} {
       allow read, write: if false;
     }

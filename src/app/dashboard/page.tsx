@@ -16,11 +16,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function fetchResources() {
-      if (profile?.undergraduateProgramId) {
+      if (profile?.program) {
         setLoading(true);
         try {
           const result = await suggestProgramResources({ 
-            undergraduateProgram: profile.undergraduateProgramId 
+            undergraduateProgram: profile.program 
           });
           setResources(result);
         } catch (error) {
@@ -31,7 +31,7 @@ export default function DashboardPage() {
       }
     }
     fetchResources();
-  }, [profile?.undergraduateProgramId]);
+  }, [profile?.program]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -45,7 +45,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-4">
             <div className="hidden md:flex flex-col items-end">
               <span className="text-sm font-semibold">{profile?.displayName}</span>
-              <span className="text-xs text-muted-foreground">{profile?.undergraduateProgramId}</span>
+              <span className="text-xs text-muted-foreground">{profile?.program}</span>
             </div>
             <Button variant="ghost" size="icon" onClick={logout} className="text-muted-foreground hover:text-primary">
               <LogOut className="w-5 h-5" />
@@ -58,7 +58,7 @@ export default function DashboardPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h2 className="text-3xl font-bold text-foreground font-headline">Dashboard</h2>
-            <p className="text-muted-foreground">Resources tailored for {profile?.undergraduateProgramId} students.</p>
+            <p className="text-muted-foreground">Resources tailored for {profile?.program} students.</p>
           </div>
           <div className="flex items-center gap-2 bg-accent/10 px-4 py-2 rounded-full text-primary border border-accent/20">
             <Sparkles className="w-4 h-4" />
@@ -67,7 +67,6 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Courses */}
           <ResourceCard 
             title="Recommended Courses" 
             description="Electives and specializations to boost your career."
@@ -76,7 +75,6 @@ export default function DashboardPage() {
             loading={loading}
           />
 
-          {/* Clubs */}
           <ResourceCard 
             title="Student Clubs" 
             description="Connect with like-minded peers in your field."
@@ -85,7 +83,6 @@ export default function DashboardPage() {
             loading={loading}
           />
 
-          {/* Campus Resources */}
           <ResourceCard 
             title="Campus Support" 
             description="Facilities and services available for your program."
@@ -105,9 +102,16 @@ export default function DashboardPage() {
               <div className="text-center md:text-left space-y-2">
                 <h3 className="text-2xl font-bold">{profile?.displayName}</h3>
                 <p className="opacity-90">{profile?.email}</p>
-                <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30 border-none px-4 py-1">
-                  Verified Student
-                </Badge>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30 border-none px-4 py-1">
+                    Verified {profile?.role}
+                  </Badge>
+                  {profile?.program && (
+                    <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30 border-none px-4 py-1">
+                      {profile.program}
+                    </Badge>
+                  )}
+                </div>
               </div>
               <div className="ml-auto flex gap-4">
                 <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 hover:text-white">

@@ -14,24 +14,25 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function OnboardingPage() {
   const { user, profile } = useAuth();
-  const [program, setProgram] = useState<string>("");
+  const [selectedProgram, setSelectedProgram] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
-  if (profile?.undergraduateProgramId) {
+  if (profile?.program) {
     router.push("/dashboard");
     return null;
   }
 
   const handleSave = async () => {
-    if (!user || !program) return;
+    if (!user || !selectedProgram) return;
 
     setLoading(true);
     try {
       const userDocRef = doc(db, "users", user.uid);
+      // Updating ONLY the program as permitted by rules
       await updateDoc(userDocRef, {
-        undergraduateProgramId: program,
+        program: selectedProgram,
         updatedAt: serverTimestamp(),
       });
       toast({
@@ -39,12 +40,12 @@ export default function OnboardingPage() {
         description: "Your profile has been successfully updated.",
       });
       router.push("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Update failed", error);
       toast({
         variant: "destructive",
         title: "Update failed",
-        description: "Something went wrong. Please try again.",
+        description: error.message || "Something went wrong. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -72,7 +73,7 @@ export default function OnboardingPage() {
             <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
               Undergraduate Program
             </label>
-            <Select onValueChange={setProgram} value={program}>
+            <Select onValueChange={setSelectedProgram} value={selectedProgram}>
               <SelectTrigger className="h-12 text-lg border-2 border-primary/20 focus:border-primary">
                 <SelectValue placeholder="Select your program" />
               </SelectTrigger>
@@ -88,7 +89,7 @@ export default function OnboardingPage() {
 
           <Button 
             onClick={handleSave} 
-            disabled={!program || loading}
+            disabled={!selectedProgram || loading}
             className="w-full h-12 text-lg font-medium bg-primary hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 className="animate-spin" /> : "Complete Setup"}

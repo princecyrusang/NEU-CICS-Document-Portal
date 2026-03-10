@@ -10,7 +10,8 @@ interface UserProfile {
   id: string;
   email: string;
   displayName: string;
-  undergraduateProgramId?: string;
+  program?: string;
+  role: 'student' | 'admin';
   isBlocked: boolean;
   createdAt: any;
   updatedAt: any;
@@ -39,10 +40,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     async function syncProfile() {
+      // 1. Wait for Auth state to initialize
       if (authLoading) return;
 
       if (user) {
-        // Domain Restriction logic: Only allow @neu.edu.ph emails
+        // 2. Domain Restriction Logic
         if (!user.email?.endsWith("@neu.edu.ph")) {
           await signOut(auth);
           router.push("/login?error=invalid_domain");
@@ -66,20 +68,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           setProfile(data);
           
-          // Onboarding check: Redirect if undergraduateProgramId is missing
-          if (!data.undergraduateProgramId && pathname !== "/onboarding") {
+          // 3. Onboarding Check: If 'program' is missing, redirect to onboarding
+          if (!data.program && pathname !== "/onboarding") {
             router.push("/onboarding");
-          } else if (data.undergraduateProgramId && pathname === "/onboarding") {
-            router.push("/dashboard");
-          } else if (data.undergraduateProgramId && pathname === "/login") {
+          } else if (data.program && (pathname === "/onboarding" || pathname === "/login")) {
             router.push("/dashboard");
           }
         } else {
-          // Create initial profile for new @neu.edu.ph user
+          // 4. Create initial profile for new @neu.edu.ph user with 'role: student'
           const initialProfile: UserProfile = {
             id: user.uid,
             email: user.email!,
             displayName: user.displayName || "New Student",
+            role: 'student',
             isBlocked: false,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
@@ -90,7 +91,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } else {
         setProfile(null);
-        // Redirect to login if not authenticated and not on public routes
         const isPublicRoute = pathname === "/login" || pathname === "/";
         if (!isPublicRoute) {
           router.push("/login");
@@ -100,14 +100,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     syncProfile();
-  }, [user, authLoading, db, pathname, router]);
+  }, [user, authLoading, pathname, router]);
 
   const logout = async () => {
     await signOut(auth);
     router.push("/login");
   };
 
-  // Prevent flash of unauthenticated content during loading
   const isInitialLoading = authLoading || (user && loading);
 
   return (

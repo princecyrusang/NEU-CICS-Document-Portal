@@ -1,62 +1,33 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * @description Helper functions for authentication and role-based checks.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
+    
     function getUserData(userId) {
       return get(/databases/$(database)/documents/users/$(userId)).data;
     }
-
+    
+    function isNotBlocked() {
+      return isSignedIn() && getUserData(request.auth.uid).isBlocked == false;
+    }
+    
     function isAdmin() {
       return isSignedIn() && getUserData(request.auth.uid).role == 'admin';
     }
 
-    /**
-     * @description Rules for the UserProfile collection.
-     * Allows owners to read and create their profiles. 
-     * Restricts updates to prevent role modification and enforces ownership.
-     */
     match /users/{userId} {
-      allow get, list, create: if isOwner(userId);
-      
-      // Allow updates to own profile, but strictly prevent changing the 'role' field.
-      // Also prevents updating 'isBlocked' from the client.
-      allow update: if isOwner(userId) 
-                    && request.resource.data.role == resource.data.role
-                    && request.resource.data.isBlocked == resource.data.isBlocked;
-                    
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if (isSignedIn() && request.auth.uid == userId && request.resource.data.role == resource.data.role) || isAdmin();
       allow delete: if false;
     }
 
-    /**
-     * @description Rules for academic programs. Publicly readable, admin-only writes.
-     */
-    match /undergraduatePrograms/{programId} {
-      allow get, list: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    /**
-     * @description Placeholder rules for generic documents.
-     */
     match /documents/{docId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    // Global deny for everything else.
-    match /{path=**} {
-      allow read, write: if false;
+      allow read: if isNotBlocked();
+      allow create, update, delete: if isAdmin();
     }
   }
 }

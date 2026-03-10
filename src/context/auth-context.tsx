@@ -2,17 +2,18 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { signOut, User } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { useAuthInstance, useFirestore, useUser } from "@/firebase";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db, useUser } from "@/firebase";
 import { useRouter, usePathname } from "next/navigation";
 
 interface UserProfile {
-  uid: string;
-  email: string | null;
-  displayName: string | null;
-  undergraduateProgram?: string;
+  id: string;
+  email: string;
+  displayName: string;
+  undergraduateProgramId?: string;
   isBlocked: boolean;
-  onboarded: boolean;
+  createdAt: any;
+  updatedAt: any;
 }
 
 interface AuthContextType {
@@ -30,8 +31,6 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const auth = useAuthInstance();
-  const db = useFirestore();
   const { user, loading: authLoading } = useUser();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,7 +42,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (authLoading) return;
 
       if (user) {
-        // Validate email domain
+        // Domain Restriction logic
         if (!user.email?.endsWith("@neu.edu.ph")) {
           await signOut(auth);
           router.push("/login?error=invalid_domain");
@@ -55,24 +54,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (userDoc.exists()) {
           const data = userDoc.data() as UserProfile;
+          
+          // Administrative block check
           if (data.isBlocked) {
             await signOut(auth);
             router.push("/login?error=blocked");
             return;
           }
+          
           setProfile(data);
           
-          if (!data.onboarded && pathname !== "/onboarding") {
+          // Onboarding check: Redirect if undergraduateProgramId is missing
+          if (!data.undergraduateProgramId && pathname !== "/onboarding") {
             router.push("/onboarding");
           }
         } else {
-          // Create initial profile
+          // Create initial profile for new @neu.edu.ph user
           const initialProfile: UserProfile = {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
+            id: user.uid,
+            email: user.email!,
+            displayName: user.displayName || "New Student",
             isBlocked: false,
-            onboarded: false,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
           };
           await setDoc(userDocRef, initialProfile);
           setProfile(initialProfile);
@@ -80,7 +84,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } else {
         setProfile(null);
-        if (pathname !== "/login") {
+        // Redirect to login if not authenticated and not on public routes
+        const isPublicRoute = pathname === "/login" || pathname === "/";
+        if (!isPublicRoute) {
           router.push("/login");
         }
       }
@@ -88,7 +94,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     syncProfile();
-  }, [user, authLoading, db, auth, pathname, router]);
+  }, [user, authLoading, db, pathname, router]);
 
   const logout = async () => {
     await signOut(auth);

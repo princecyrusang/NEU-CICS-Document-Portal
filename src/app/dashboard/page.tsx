@@ -16,11 +16,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function fetchResources() {
-      if (profile?.undergraduateProgram) {
+      if (profile?.undergraduateProgramId) {
         setLoading(true);
         try {
           const result = await suggestProgramResources({ 
-            undergraduateProgram: profile.undergraduateProgram 
+            undergraduateProgram: profile.undergraduateProgramId 
           });
           setResources(result);
         } catch (error) {
@@ -31,7 +31,7 @@ export default function DashboardPage() {
       }
     }
     fetchResources();
-  }, [profile?.undergraduateProgram]);
+  }, [profile?.undergraduateProgramId]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -45,7 +45,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-4">
             <div className="hidden md:flex flex-col items-end">
               <span className="text-sm font-semibold">{profile?.displayName}</span>
-              <span className="text-xs text-muted-foreground">{profile?.undergraduateProgram}</span>
+              <span className="text-xs text-muted-foreground">{profile?.undergraduateProgramId}</span>
             </div>
             <Button variant="ghost" size="icon" onClick={logout} className="text-muted-foreground hover:text-primary">
               <LogOut className="w-5 h-5" />
@@ -58,7 +58,7 @@ export default function DashboardPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h2 className="text-3xl font-bold text-foreground font-headline">Dashboard</h2>
-            <p className="text-muted-foreground">Resources tailored for {profile?.undergraduateProgram} students.</p>
+            <p className="text-muted-foreground">Resources tailored for {profile?.undergraduateProgramId} students.</p>
           </div>
           <div className="flex items-center gap-2 bg-accent/10 px-4 py-2 rounded-full text-primary border border-accent/20">
             <Sparkles className="w-4 h-4" />

@@ -2,16 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { useAuthInstance } from '../provider';
+import { useAuth } from '../provider';
 
+/**
+ * Hook specifically for accessing the authenticated user's state.
+ * This provides the User object and a loading status.
+ */
 export function useUser() {
-  const auth = useAuthInstance();
+  const auth = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    return onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
       setLoading(false);
     });
   }, [auth]);

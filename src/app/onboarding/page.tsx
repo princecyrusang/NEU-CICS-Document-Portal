@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useAuth } from "@/context/auth-context";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { NEU_PROGRAMS } from "@/app/lib/programs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +19,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  if (profile?.onboarded) {
+  if (profile?.undergraduateProgramId) {
     router.push("/dashboard");
     return null;
   }
@@ -29,9 +29,10 @@ export default function OnboardingPage() {
 
     setLoading(true);
     try {
-      await updateDoc(doc(db, "users", user.uid), {
-        undergraduateProgram: program,
-        onboarded: true,
+      const userDocRef = doc(db, "users", user.uid);
+      await updateDoc(userDocRef, {
+        undergraduateProgramId: program,
+        updatedAt: serverTimestamp(),
       });
       toast({
         title: "Welcome aboard!",

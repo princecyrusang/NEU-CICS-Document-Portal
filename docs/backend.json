@@ -1,0 +1,125 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Stores essential profile information for users of the NEU Student Hub application, linked to their Firebase Authentication ID. Includes their selected undergraduate program and administrative blocking status.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity, typically the Firebase User ID."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address, used for identification and communication. This email is restricted to the '@neu.edu.ph' domain.",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name, typically provided by Firebase or set by the user."
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL to the user's profile picture, typically provided by Firebase.",
+          "format": "uri"
+        },
+        "undergraduateProgramId": {
+          "type": "string",
+          "description": "Reference to the UndergraduateProgram entity selected by the user during onboarding. This field is essential for accessing the main dashboard. (Relationship: UndergraduateProgram 1:N UserProfile)"
+        },
+        "isBlocked": {
+          "type": "boolean",
+          "description": "Indicates if the user's access to the application has been blocked by an administrator. Defaults to false."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the user profile was first created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the user profile was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "displayName",
+        "undergraduateProgramId",
+        "isBlocked",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UndergraduateProgram": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UndergraduateProgram",
+      "type": "object",
+      "description": "Represents an academic undergraduate program offered at NEU, used for user onboarding and personalized content suggestions.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UndergraduateProgram entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The official name of the undergraduate program (e.g., 'Bachelor of Science in Computer Science')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description or overview of the undergraduate program."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores individual user profiles, where the document ID `{userId}` is the Firebase Authentication UID. This structure provides path-based ownership for robust security rules. Includes denormalized 'isBlocked' boolean for authorization control. It is recommended to add an 'onboardingStatus' field (e.g., 'PENDING', 'COMPLETED') to explicitly manage onboarding state, allowing rules to check `resource.data.onboardingStatus == 'COMPLETED'` for dashboard access instead of inferring from `undergraduateProgramId` presence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique Firebase Authentication User ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/undergraduatePrograms/{programId}",
+        "definition": {
+          "entityName": "UndergraduateProgram",
+          "schema": {
+            "$ref": "#/backend/entities/UndergraduateProgram"
+          },
+          "description": "Contains a list of all available undergraduate programs. This collection is globally readable by all authenticated users to facilitate selection during user onboarding. Write access should be restricted to administrators only, likely via server-side methods.",
+          "params": [
+            {
+              "name": "programId",
+              "description": "The unique identifier for an undergraduate program."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to be secure, scalable, and debuggable, strictly adhering to the core design principles and mandates. \n\n**Authorization Independence (CRITICAL):**\n1.  **`/users/{userId}` Collection:** Each UserProfile document is stored under a path where `{userId}` is the Firebase Authentication UID of the user. This path-based ownership inherently denormalizes the authorization context. Firebase Security Rules can directly compare `request.auth.uid` with the `{userId}` wildcard in the path, eliminating the need for `get()` calls to retrieve parent or owner information. This makes read/write operations on a user's profile atomic and simplifies rule logic considerably. For example, a rule would simply be `allow read, update: if request.auth.uid == userId && resource.data.isBlocked == false;`. The `isBlocked` field, part of the UserProfile document, also provides authorization independence as it's directly available on the resource being accessed.\n2.  **`/undergraduatePrograms/{programId}` Collection:** This collection stores static reference data. Access to these documents does not depend on any user-specific attributes or parent documents. They are designed for read-only access by any authenticated user. This inherent lack of dependencies ensures authorization independence.\n\n**QAPs (Rules are not Filters):**\n1.  **`/users/{userId}` Collection:** This collection adheres to a homogeneous security posture where each document is exclusively owned and managed by the corresponding user. A client application would only ever request *its own* user profile using `db.collection('users').doc(request.auth.uid)`. Listing documents from this collection by a non-administrator client would implicitly fail by rules unless `userId` is explicitly provided, preventing broad, unauthorized data leakage and ensuring QAPs for client-side queries. Admin queries would require different, more permissive rules, likely handled by server-side logic.\n2.  **`/undergraduatePrograms/{programId}` Collection:** All documents in this collection have the same security requirement: read-only for authenticated users. This homogeneous security posture enables secure and efficient `list` operations. Clients can query the entire collection to populate dropdowns or display program information, and security rules can simply `allow read: if request.auth != null;` without complex filtering logic.\n\n**DBAC (No Custom Claims):** The `isBlocked` field within the UserProfile document is a direct example of Database Access Control. Authorization rules check this field directly on the requested resource, avoiding the complexity and performance overhead of custom claims.\n\n**Explicit State Modeling:** The user's onboarding status is implicitly tied to the `undergraduateProgramId` field. To further enhance clarity and strict adherence to principle D.1, it is highly recommended to add an explicit `onboardingStatus` field (e.g., `PENDING`, `COMPLETED`) to the `UserProfile` schema. This would make security rules for dashboard access even more explicit, checking `resource.data.onboardingStatus == 'COMPLETED'`.\n\n**Addressing the Auth Domain Error:** The FirebaseError: (auth/auth-domain-config-required) reported in the user's console indicates an issue with the Firebase Authentication setup itself, specifically that the authorized domains for your Firebase project are not correctly configured. This is a project-level configuration task within the Firebase Console (Authentication -> Settings -> Authorized domains) and is separate from Firestore data modeling. Ensure `localhost` and any deployment domains (e.g., `neu-student-hub.web.app`) are listed.\n"
+  }
+}

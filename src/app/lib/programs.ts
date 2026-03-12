@@ -14,12 +14,10 @@ export const ADMIN_PROGRAM_OPTIONS = [
 export type AdminProgramOption = (typeof ADMIN_PROGRAM_OPTIONS)[number];
 
 export const DOCUMENT_CATEGORIES = [
-  "Enrollment & Subjects",
-  "OJT & Internship",
-  "Graduation",
-  "Administrative Requests",
-  "Department Memos",
-  "Other"
+  "Academic & Enrollment",
+  "Internship & OJT",
+  "Graduation & Records",
+  "General CICS Forms"
 ] as const;
 
 export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[number];

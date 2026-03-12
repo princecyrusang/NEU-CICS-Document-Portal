@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, Info, ExternalLink } from "lucide-react";
+import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, Info, ExternalLink, ShieldX } from "lucide-react";
 import { DOCUMENT_CATEGORIES } from "@/app/lib/programs";
 import Link from "next/link";
 
@@ -52,6 +52,31 @@ export default function DocumentGalleryPage() {
       console.error("Error handling document link:", error);
     }
   };
+
+  // Blocked user restriction
+  if (profile?.isBlocked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md border-destructive shadow-2xl">
+          <CardHeader className="text-center">
+            <ShieldX className="w-20 h-20 text-destructive mx-auto mb-6" />
+            <CardTitle className="text-2xl font-bold">Access Restricted</CardTitle>
+            <CardDescription className="text-lg">
+              Your access has been restricted by the Admin.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-center text-muted-foreground">
+              Please contact the department administration for more information regarding your account status.
+            </p>
+            <Button variant="outline" onClick={logout} className="w-full">
+              Logout
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

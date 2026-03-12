@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { db } from "@/firebase";
+import { db, storage } from "@/firebase";
 import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Users, ShieldAlert, Loader2, UserX, UserCheck, 
   ArrowLeft, FilePlus, LayoutDashboard, BarChart3, TrendingUp,
-  FileText, Download, Link as LinkIcon
+  FileText, Download, UploadCloud, FileUp
 } from "lucide-react";
 import Link from "next/link";
 import { ADMIN_PROGRAM_OPTIONS, DOCUMENT_CATEGORIES } from "@/app/lib/programs";
@@ -28,6 +29,7 @@ export default function AdminPage() {
   const { profile } = useAuth();
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Data Fetching
   const usersQuery = useMemoFirebase(() => collection(db, "users"), []);
@@ -62,8 +64,8 @@ export default function AdminPage() {
     title: "",
     category: "",
     program: "All CICS",
-    fileUrl: ""
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   if (profile?.role !== 'admin') {
     return (
@@ -84,34 +86,50 @@ export default function AdminPage() {
     );
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newDoc.fileUrl || !newDoc.title || !newDoc.category || !newDoc.program) {
-      toast({ variant: "destructive", title: "Error", description: "Please fill all fields." });
+    if (!selectedFile || !newDoc.title || !newDoc.category || !newDoc.program) {
+      toast({ variant: "destructive", title: "Error", description: "Please fill all fields and select a PDF file." });
       return;
     }
 
     setSubmitting(true);
     try {
-      // Add document metadata directly to Firestore
+      // 1. Upload file to Firebase Storage
+      const storageRef = ref(storage, `cics_vault/${Date.now()}_${selectedFile.name}`);
+      const uploadResult = await uploadBytes(storageRef, selectedFile);
+      
+      // 2. Get Download URL
+      const downloadUrl = await getDownloadURL(uploadResult.ref);
+
+      // 3. Save metadata to Firestore
       await addDoc(collection(db, "documents"), {
         title: newDoc.title,
         category: newDoc.category,
         program: newDoc.program,
-        fileUrl: newDoc.fileUrl,
+        fileUrl: downloadUrl,
         uploadDate: new Date().toISOString(),
         downloadCount: 0,
         uploadedBy: profile?.id,
         createdAt: serverTimestamp()
       });
 
-      toast({ title: "Success", description: "Document added to repository!" });
-      setNewDoc({ title: "", category: "", program: "All CICS", fileUrl: "" });
+      toast({ title: "Success", description: "Document uploaded and added to repository!" });
+      setNewDoc({ title: "", category: "", program: "All CICS" });
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error: any) {
+      console.error("Upload error:", error);
       toast({ 
         variant: "destructive", 
-        title: "Submission Failed", 
-        description: error.message || "An unexpected error occurred."
+        title: "Upload Failed", 
+        description: error.code || error.message || "An unexpected error occurred."
       });
     } finally {
       setSubmitting(false);
@@ -250,8 +268,8 @@ export default function AdminPage() {
           <TabsContent value="upload">
             <Card className="max-w-2xl mx-auto border-none shadow-lg">
               <CardHeader>
-                <CardTitle className="font-headline">Add New Document</CardTitle>
-                <CardDescription>Enter the external document URL to add it to the repository.</CardDescription>
+                <CardTitle className="font-headline">Upload New Document</CardTitle>
+                <CardDescription>Upload a PDF file and set its metadata for the repository.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -285,21 +303,28 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Document URL (External Link)</label>
-                    <div className="relative">
-                      <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input 
-                        placeholder="https://example.com/document.pdf" 
-                        value={newDoc.fileUrl}
-                        onChange={(e) => setNewDoc({...newDoc, fileUrl: e.target.value})}
-                        className="h-12 pl-10"
+                    <label className="text-sm font-medium">File Upload (PDF)</label>
+                    <div 
+                      className="border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-4 bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <UploadCloud className="w-12 h-12 text-primary opacity-50" />
+                      <div className="text-center">
+                        <p className="font-medium">{selectedFile ? selectedFile.name : "Select PDF file"}</p>
+                        <p className="text-xs text-muted-foreground italic">Click to browse your device</p>
+                      </div>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        className="hidden" 
+                        accept=".pdf"
+                        onChange={handleFileChange}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground italic">Provide a direct link to the document (e.g. Google Drive, Dropbox, or school site).</p>
                   </div>
                   <Button type="submit" className="w-full h-12 text-lg font-medium" disabled={submitting}>
-                    {submitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <FilePlus className="mr-2 h-5 w-5" />}
-                    Add to Repository
+                    {submitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <FileUp className="mr-2 h-5 w-5" />}
+                    Upload to Repository
                   </Button>
                 </form>
               </CardContent>

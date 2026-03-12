@@ -6,10 +6,16 @@ import { getAuth, Auth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 
+// Manual bucket override as requested to bypass console initialization issues
+const finalConfig = {
+  ...firebaseConfig,
+  storageBucket: "studio-998152409-fbf64.firebasestorage.app"
+};
+
 // Initialize Firebase App instance safely for SSR and CSR
 let firebaseApp: FirebaseApp;
 if (!getApps().length) {
-  firebaseApp = initializeApp(firebaseConfig);
+  firebaseApp = initializeApp(finalConfig);
 } else {
   firebaseApp = getApp();
 }

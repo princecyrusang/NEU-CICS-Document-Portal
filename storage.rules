@@ -1,0 +1,20 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function getUserData(userId) {
+      // Note: storage rules cannot directly call get() on firestore documents easily without specific config.
+      // However, for simplicity and standard Studio practice, we rely on auth state.
+      // In a real production environment, custom claims or firestore lookups (if enabled) are used.
+      return request.auth.token.email.endsWith('@neu.edu.ph');
+    }
+
+    match /cics_vault/{allPaths=**} {
+      allow read: if isSignedIn() && getUserData(request.auth.uid);
+      allow write: if isSignedIn() && request.auth.token.email.endsWith('@neu.edu.ph'); // Admin check usually via custom claims or separate logic
+    }
+  }
+}

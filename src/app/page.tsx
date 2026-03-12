@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from "@/context/auth-context";
@@ -7,6 +8,7 @@ import { GraduationCap, FileText, ShieldCheck, ArrowRight, Loader2, Zap } from "
 import Link from "next/link";
 import Image from "next/image";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function LandingPage() {
   const { user, profile, loading } = useAuth();
@@ -23,7 +25,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Navigation */}
-      <nav className="border-b bg-background/80 backdrop-blur-md sticky top-0 z-50">
+      <nav className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-primary/20 p-2 rounded-xl">
@@ -31,7 +33,8 @@ export default function LandingPage() {
             </div>
             <span className="text-xl font-bold text-foreground font-headline">NEU CICS Portal</span>
           </div>
-          <div>
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
             {user ? (
               <Link href="/dashboard">
                 <Button variant="default" className="rounded-xl shadow-lg shadow-primary/20">Go to Dashboard</Button>
@@ -76,7 +79,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="flex-1 w-full max-w-xl">
-              <div className="relative aspect-video rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-4 border-white/5 group">
+              <div className="relative aspect-video rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-4 border-border group">
                 <Image 
                   src={heroImage?.imageUrl || "https://picsum.photos/seed/neu/800/450"} 
                   alt="NEU CICS Portal"
@@ -89,9 +92,6 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-        {/* Background Decorative Elements */}
-        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] -z-10" />
-        <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-accent/10 rounded-full blur-[120px] -z-10" />
       </header>
 
       {/* Features Section */}
@@ -130,7 +130,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-16 bg-background">
+      <footer className="border-t border-border py-16 bg-background">
         <div className="container mx-auto px-4 text-center space-y-4">
           <div className="flex items-center justify-center gap-2 mb-4">
             <GraduationCap className="w-6 h-6 text-primary" />

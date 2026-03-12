@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useRef } from "react";
@@ -23,6 +24,7 @@ import { ADMIN_PROGRAM_OPTIONS, DOCUMENT_CATEGORIES } from "@/app/lib/programs";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function AdminPage() {
   const { profile } = useAuth();
@@ -156,27 +158,30 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-12">
-      <header className="border-b border-white/5 bg-secondary/30 backdrop-blur-md">
-        <div className="container mx-auto px-4 h-20 flex items-center gap-4">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white/5">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="bg-primary/20 p-2 rounded-xl">
-              <GraduationCap className="w-6 h-6 text-primary" />
+      <header className="border-b border-border bg-secondary/30 backdrop-blur-md">
+        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="icon" className="rounded-xl">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/20 p-2 rounded-xl">
+                <GraduationCap className="w-6 h-6 text-primary" />
+              </div>
+              <h1 className="text-xl font-bold font-headline text-foreground">
+                Portal Administration
+              </h1>
             </div>
-            <h1 className="text-xl font-bold font-headline text-foreground">
-              Portal Administration
-            </h1>
           </div>
+          <ThemeToggle />
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-10 max-w-7xl">
         <Tabs defaultValue="overview" className="space-y-10">
-          <TabsList className="bg-secondary/50 p-1 rounded-2xl border border-white/5 h-14 md:w-[600px] grid grid-cols-3">
+          <TabsList className="bg-secondary/50 p-1 rounded-2xl border border-border h-14 md:w-[600px] grid grid-cols-3">
             <TabsTrigger value="overview" className="gap-2 rounded-xl data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
               <BarChart3 className="w-4 h-4" /> Statistics
             </TabsTrigger>
@@ -218,12 +223,12 @@ export default function AdminPage() {
                 <CardContent className="h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff10" />
-                      <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{fill: '#ffffff60'}} />
-                      <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{fill: '#ffffff60'}} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#88888820" />
+                      <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{fill: 'currentColor', opacity: 0.6}} />
+                      <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{fill: 'currentColor', opacity: 0.6}} />
                       <Tooltip 
-                        cursor={{fill: '#ffffff05'}}
-                        contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
+                        cursor={{fill: 'currentColor', opacity: 0.05}}
+                        contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}
                       />
                       <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={40}>
                         {chartData.map((entry, index) => (
@@ -243,7 +248,7 @@ export default function AdminPage() {
                 <CardContent>
                   <div className="space-y-4">
                     {documents?.slice(0, 6).map(doc => (
-                      <div key={doc.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl hover:bg-white/10 transition-colors">
+                      <div key={doc.id} className="flex items-center justify-between p-4 bg-secondary/30 rounded-2xl hover:bg-secondary/50 transition-colors">
                         <div className="flex items-center gap-4">
                           <div className="bg-primary/10 p-2 rounded-xl">
                             <FileText className="w-5 h-5 text-primary" />
@@ -253,7 +258,7 @@ export default function AdminPage() {
                             <p className="text-xs text-muted-foreground">{doc.category}</p>
                           </div>
                         </div>
-                        <Badge variant="outline" className="rounded-lg border-white/10">{new Date(doc.uploadDate).toLocaleDateString()}</Badge>
+                        <Badge variant="outline" className="rounded-lg border-border">{new Date(doc.uploadDate).toLocaleDateString()}</Badge>
                       </div>
                     ))}
                   </div>
@@ -266,7 +271,7 @@ export default function AdminPage() {
             <Card className="max-w-2xl mx-auto glass-card border-none rounded-[2.5rem]">
               <CardHeader className="pb-8">
                 <CardTitle className="text-2xl font-headline">Asset Ingestion</CardTitle>
-                <CardDescription>Publish new PDF resources to the student body (Max 700KB).</CardDescription>
+                <CardDescription>Publish new PDF resources (Max 700KB).</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -276,7 +281,7 @@ export default function AdminPage() {
                       placeholder="e.g. 1st Year Enrollment Procedure" 
                       value={newDoc.title}
                       onChange={(e) => setNewDoc({...newDoc, title: e.target.value})}
-                      className="h-14 bg-white/5 border-white/5 rounded-2xl focus:ring-primary/20"
+                      className="h-14 bg-secondary/50 border-border rounded-2xl focus:ring-primary/20"
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -286,10 +291,10 @@ export default function AdminPage() {
                         onValueChange={(v) => setNewDoc({...newDoc, category: v})} 
                         value={newDoc.category}
                       >
-                        <SelectTrigger className="h-14 bg-white/5 border-white/5 rounded-2xl focus:ring-primary/20">
+                        <SelectTrigger className="h-14 bg-secondary/50 border-border rounded-2xl focus:ring-primary/20">
                           <SelectValue placeholder="Select Category" />
                         </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-white/10">
+                        <SelectContent className="rounded-2xl border-border">
                           {DOCUMENT_CATEGORIES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                         </SelectContent>
                       </Select>
@@ -297,25 +302,25 @@ export default function AdminPage() {
                     <div className="space-y-2">
                       <label className="text-sm font-semibold px-1">Program Target</label>
                       <Select onValueChange={(v) => setNewDoc({...newDoc, program: v})} value={newDoc.program}>
-                        <SelectTrigger className="h-14 bg-white/5 border-white/5 rounded-2xl focus:ring-primary/20">
+                        <SelectTrigger className="h-14 bg-secondary/50 border-border rounded-2xl focus:ring-primary/20">
                           <SelectValue placeholder="Select Program" />
                         </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-white/10">
+                        <SelectContent className="rounded-2xl border-border">
                           {ADMIN_PROGRAM_OPTIONS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold px-1">PDF Payload (Base64 encoding)</label>
+                    <label className="text-sm font-semibold px-1">PDF Payload</label>
                     <div 
-                      className="border-2 border-dashed border-white/10 rounded-[2rem] p-12 flex flex-col items-center justify-center gap-4 bg-white/5 hover:bg-white/10 transition-all cursor-pointer group"
+                      className="border-2 border-dashed border-border rounded-[2rem] p-12 flex flex-col items-center justify-center gap-4 bg-secondary/50 hover:bg-secondary transition-all cursor-pointer group"
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <UploadCloud className="w-16 h-16 text-primary/40 group-hover:text-primary transition-colors" />
                       <div className="text-center">
                         <p className="font-bold text-lg">{selectedFile ? selectedFile.name : "Select PDF Document"}</p>
-                        <p className="text-xs text-muted-foreground mt-1">Files are optimized for Firestore storage limits</p>
+                        <p className="text-xs text-muted-foreground mt-1">Files are stored directly in Firestore</p>
                       </div>
                       <input 
                         type="file" 
@@ -339,16 +344,16 @@ export default function AdminPage() {
             <Card className="glass-card border-none rounded-[2.5rem]">
               <CardHeader>
                 <CardTitle className="text-2xl font-headline">Student Registry</CardTitle>
-                <CardDescription>Manage authenticated student access and role verification.</CardDescription>
+                <CardDescription>Manage student access and role verification.</CardDescription>
               </CardHeader>
               <CardContent>
                 {usersLoading ? (
                   <div className="flex justify-center py-24"><Loader2 className="animate-spin w-12 h-12 text-primary opacity-20" /></div>
                 ) : (
-                  <div className="rounded-[2rem] border border-white/5 overflow-hidden">
+                  <div className="rounded-[2rem] border border-border overflow-hidden">
                     <Table>
-                      <TableHeader className="bg-white/5">
-                        <TableRow className="border-white/5 hover:bg-transparent">
+                      <TableHeader className="bg-secondary/50">
+                        <TableRow className="border-border hover:bg-transparent">
                           <TableHead className="py-6 font-bold">Student Identity</TableHead>
                           <TableHead className="font-bold">Contact Email</TableHead>
                           <TableHead className="font-bold">Academic Program</TableHead>
@@ -358,11 +363,11 @@ export default function AdminPage() {
                       </TableHeader>
                       <TableBody>
                         {users?.map((user) => (
-                          <TableRow key={user.id} className="border-white/5 hover:bg-white/5 transition-colors">
+                          <TableRow key={user.id} className="border-border hover:bg-secondary transition-colors">
                             <TableCell className="font-bold py-6 pl-8">{user.displayName}</TableCell>
                             <TableCell className="text-muted-foreground">{user.email}</TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="border-white/10 font-medium">
+                              <Badge variant="outline" className="border-border font-medium">
                                 {user.program || "Pending Selection"}
                               </Badge>
                             </TableCell>

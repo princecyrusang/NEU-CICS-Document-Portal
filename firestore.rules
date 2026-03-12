@@ -26,7 +26,10 @@ service cloud.firestore {
     }
 
     match /documents/{docId} {
+      // Allow read for all authenticated users who are not blocked
       allow read: if isNotBlocked();
+      
+      // Allow write (create, update, delete) only for users with role == 'admin'
       allow create, update, delete: if isAdmin();
     }
   }

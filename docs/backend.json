@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -21,7 +22,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AcademicDocument",
       "type": "object",
-      "description": "Metadata for uploaded academic resources.",
+      "description": "Metadata for uploaded academic resources stored in the 'documents' collection.",
       "properties": {
         "id": { "type": "string" },
         "title": { "type": "string" },
@@ -51,7 +52,7 @@
         "path": "/documents/{docId}",
         "definition": {
           "entityName": "AcademicDocument",
-          "description": "Metadata for repository files, searchable by all students."
+          "description": "Metadata for repository files, searchable by students."
         }
       }
     ]

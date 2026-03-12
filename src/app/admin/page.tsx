@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useRef } from "react";
@@ -108,7 +109,7 @@ export default function AdminPage() {
       // 2. Get Download URL
       const downloadUrl = await getDownloadURL(uploadResult.ref);
 
-      // 3. Save metadata to Firestore
+      // 3. Save metadata to Firestore 'documents' collection
       await addDoc(collection(db, "documents"), {
         title: newDoc.title,
         category: newDoc.category,

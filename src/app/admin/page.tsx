@@ -58,10 +58,10 @@ export default function AdminPage() {
     return Object.entries(typeCounts).map(([name, value]) => ({ name, value }));
   }, [documents]);
 
-  // Form State
+  // Form State - Pre-populated category with the first official option
   const [newDoc, setNewDoc] = useState({
     title: "",
-    category: "",
+    category: DOCUMENT_CATEGORIES[0],
     program: "All CICS",
   });
   const [selectedFile, setSelectedFile] = useState<{ name: string; base64: string } | null>(null);
@@ -88,7 +88,7 @@ export default function AdminPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1024 * 700) { // ~700KB limit due to Firestore 1MB doc limit (Base64 adds ~33% overhead)
+      if (file.size > 1024 * 700) { 
         toast({ 
           variant: "destructive", 
           title: "File too large", 
@@ -116,7 +116,6 @@ export default function AdminPage() {
 
     setSubmitting(true);
     try {
-      // Save directly to Firestore using Base64
       await addDoc(collection(db, "documents"), {
         title: newDoc.title,
         category: newDoc.category,
@@ -130,7 +129,7 @@ export default function AdminPage() {
       });
 
       toast({ title: "Success", description: "Document added to repository via Firestore!" });
-      setNewDoc({ title: "", category: "", program: "All CICS" });
+      setNewDoc({ title: "", category: DOCUMENT_CATEGORIES[0], program: "All CICS" });
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error: any) {
@@ -228,7 +227,7 @@ export default function AdminPage() {
                   <CardTitle className="text-lg font-headline flex items-center gap-2">
                     <TrendingUp className="w-5 h-5 text-primary" /> Repository Distribution
                   </CardTitle>
-                  <CardDescription>Number of files per category (Firestore Storage).</CardDescription>
+                  <CardDescription>Number of files per category.</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
@@ -278,14 +277,14 @@ export default function AdminPage() {
             <Card className="max-w-2xl mx-auto border-none shadow-lg">
               <CardHeader>
                 <CardTitle className="font-headline">Add New Document Entry</CardTitle>
-                <CardDescription>Upload a PDF (max 700KB) to be stored directly in Firestore.</CardDescription>
+                <CardDescription>Upload a PDF (max 700KB) to the CICS Repository.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Document Title</label>
                     <Input 
-                      placeholder="e.g. OJT Completion Form - 2024" 
+                      placeholder="e.g. OJT Checklist - First Semester" 
                       value={newDoc.title}
                       onChange={(e) => setNewDoc({...newDoc, title: e.target.value})}
                       className="h-12"
@@ -294,7 +293,10 @@ export default function AdminPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Document Category</label>
-                      <Select onValueChange={(v) => setNewDoc({...newDoc, category: v})} value={newDoc.category}>
+                      <Select 
+                        onValueChange={(v) => setNewDoc({...newDoc, category: v})} 
+                        value={newDoc.category}
+                      >
                         <SelectTrigger className="h-12"><SelectValue placeholder="Select Category" /></SelectTrigger>
                         <SelectContent>
                           {DOCUMENT_CATEGORIES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
@@ -333,7 +335,7 @@ export default function AdminPage() {
                   </div>
                   <Button type="submit" className="w-full h-12 text-lg font-medium" disabled={submitting}>
                     {submitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <FileUp className="mr-2 h-5 w-5" />}
-                    Save to Firestore Repository
+                    Save to Repository
                   </Button>
                 </form>
               </CardContent>

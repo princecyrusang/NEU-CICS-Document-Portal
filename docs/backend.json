@@ -25,7 +25,7 @@
       "properties": {
         "id": { "type": "string" },
         "title": { "type": "string" },
-        "category": { "type": "string", "enum": ["Academic & Enrollment", "Internship & OJT", "Graduation & Records", "General CICS Forms"] },
+        "category": { "type": "string", "enum": ["Academic & Enrollment", "Internship & OJT", "Graduation Requirements", "Student Records & Transfer"] },
         "program": { "type": "string" },
         "fileData": { "type": "string", "description": "Base64 encoded string of the PDF file." },
         "fileName": { "type": "string" },

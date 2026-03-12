@@ -16,8 +16,8 @@ export type AdminProgramOption = (typeof ADMIN_PROGRAM_OPTIONS)[number];
 export const DOCUMENT_CATEGORIES = [
   "Academic & Enrollment",
   "Internship & OJT",
-  "Graduation & Records",
-  "General CICS Forms"
+  "Graduation Requirements",
+  "Student Records & Transfer"
 ] as const;
 
 export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[number];

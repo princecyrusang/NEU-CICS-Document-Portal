@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, Info, FileDown, ShieldX } from "lucide-react";
+import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, Info, FileDown, ShieldX, GraduationCap } from "lucide-react";
 import { DOCUMENT_CATEGORIES } from "@/app/lib/programs";
 import Link from "next/link";
 
@@ -39,13 +39,11 @@ export default function DocumentGalleryPage() {
 
   const handleDownload = (docId: string, base64Data: string, fileName: string) => {
     try {
-      // 1. Increment count in background
       const docRef = doc(db, "documents", docId);
       updateDoc(docRef, {
         downloadCount: increment(1)
       });
 
-      // 2. Convert Base64 back to Blob and trigger download
       const byteString = atob(base64Data.split(',')[1]);
       const mimeString = base64Data.split(',')[0].split(':')[1].split(';')[0];
       const ab = new ArrayBuffer(byteString.length);
@@ -62,7 +60,6 @@ export default function DocumentGalleryPage() {
       document.body.appendChild(link);
       link.click();
       
-      // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
@@ -73,19 +70,19 @@ export default function DocumentGalleryPage() {
   if (profile?.isBlocked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md border-destructive shadow-2xl">
+        <Card className="w-full max-w-md border-destructive glass-card">
           <CardHeader className="text-center">
             <ShieldX className="w-20 h-20 text-destructive mx-auto mb-6" />
             <CardTitle className="text-2xl font-bold">Access Restricted</CardTitle>
             <CardDescription className="text-lg">
-              Your access has been restricted by the Admin.
+              Your account has been restricted by the Administration.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <p className="text-center text-muted-foreground">
-              Please contact the department administration for more information regarding your account status.
+              Please visit the department office to discuss your account status.
             </p>
-            <Button variant="outline" onClick={logout} className="w-full">
+            <Button variant="outline" onClick={logout} className="w-full rounded-xl">
               Logout
             </Button>
           </CardContent>
@@ -95,53 +92,62 @@ export default function DocumentGalleryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-30 w-full border-b bg-white/80 backdrop-blur-md">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FileText className="w-8 h-8 text-primary" />
-            <h1 className="text-xl font-bold text-primary font-headline">CICS Document Repo</h1>
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-30 w-full border-b border-white/5 bg-background/80 backdrop-blur-md">
+        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-primary/20 p-2 rounded-xl">
+              <GraduationCap className="w-6 h-6 text-primary" />
+            </div>
+            <h1 className="text-xl font-bold text-foreground font-headline">NEU CICS Portal</h1>
           </div>
-          <div className="flex items-center gap-4">
-            {profile?.role === 'admin' && (
-              <Link href="/admin">
-                <Button variant="outline" size="sm" className="hidden md:flex gap-2">
-                  <LayoutDashboard className="w-4 h-4" /> Admin
-                </Button>
-              </Link>
-            )}
-            <div className="hidden md:flex flex-col items-end">
+          <div className="flex items-center gap-6">
+            <div className="hidden lg:flex flex-col items-end border-r pr-6 border-white/5">
               <span className="text-sm font-semibold">{profile?.displayName}</span>
               <span className="text-xs text-muted-foreground">{profile?.program}</span>
             </div>
-            <Button variant="ghost" size="icon" onClick={logout} className="text-muted-foreground hover:text-primary">
-              <LogOut className="w-5 h-5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              {profile?.role === 'admin' && (
+                <Link href="/admin">
+                  <Button variant="outline" size="sm" className="hidden md:flex gap-2 rounded-xl border-white/10">
+                    <LayoutDashboard className="w-4 h-4" /> Admin Portal
+                  </Button>
+                </Link>
+              )}
+              <Button 
+                variant="ghost" 
+                onClick={logout} 
+                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-2 rounded-xl px-4"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline font-medium">Logout</span>
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <div className="w-full md:w-1/2 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <main className="container mx-auto px-4 py-10 max-w-7xl">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+          <div className="w-full md:w-1/2 relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input 
-              placeholder="Search documents by title..." 
-              className="pl-10" 
+              placeholder="Search by document title..." 
+              className="pl-12 h-14 bg-secondary/50 border-white/5 rounded-2xl focus:ring-primary/20" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="flex gap-4 w-full md:w-auto">
             <Select onValueChange={setCategoryFilter} defaultValue="all">
-              <SelectTrigger className="w-full md:w-[250px]">
+              <SelectTrigger className="w-full md:w-[280px] h-14 bg-secondary/50 border-white/5 rounded-2xl">
                 <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                  <SelectValue placeholder="All Categories" />
+                  <Filter className="w-4 h-4 text-primary" />
+                  <SelectValue placeholder="All Classifications" />
                 </div>
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
+              <SelectContent className="rounded-2xl border-white/10 bg-card">
+                <SelectItem value="all">All Classifications</SelectItem>
                 {DOCUMENT_CATEGORIES.map(cat => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
@@ -152,47 +158,50 @@ export default function DocumentGalleryPage() {
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="w-12 h-12 text-primary animate-spin" />
-            <p className="text-muted-foreground">Loading Firestore repository...</p>
+            <div className="relative">
+              <Loader2 className="w-16 h-16 text-primary animate-spin opacity-20" />
+              <GraduationCap className="w-8 h-8 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            </div>
+            <p className="text-muted-foreground font-medium">Syncing Portal Repository...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredDocs.map((doc) => (
-              <Card key={doc.id} className="border-none shadow-md hover:shadow-lg transition-all group overflow-hidden">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start mb-2">
+              <Card key={doc.id} className="border-white/5 glass-card card-glow rounded-3xl group transition-all overflow-hidden">
+                <CardHeader className="pb-4">
+                  <div className="flex justify-between items-start mb-4">
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary">{doc.category}</Badge>
+                      <Badge variant="secondary" className="rounded-lg bg-primary/10 text-primary border-none">{doc.category}</Badge>
                       {doc.program === 'All CICS' && (
-                        <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 flex gap-1 items-center">
-                          <Info className="w-3 h-3" /> All Programs
+                        <Badge variant="outline" className="bg-accent/5 text-accent border-accent/20 flex gap-1 items-center rounded-lg">
+                          <Info className="w-3 h-3" /> Universal
                         </Badge>
                       )}
                     </div>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Download className="w-3 h-3" /> {doc.downloadCount || 0}
-                    </span>
                   </div>
-                  <CardTitle className="text-lg font-headline line-clamp-1 group-hover:text-primary transition-colors">
+                  <CardTitle className="text-xl font-headline line-clamp-2 group-hover:text-primary transition-colors leading-tight">
                     {doc.title}
                   </CardTitle>
-                  <CardDescription className="flex items-center gap-1">
-                    {doc.program}
-                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between mt-4">
-                    <span className="text-xs text-muted-foreground">
-                      Added: {doc.uploadDate ? new Date(doc.uploadDate).toLocaleDateString() : "Unknown"}
-                    </span>
-                    <Button 
-                      size="sm" 
-                      variant="default"
-                      onClick={() => handleDownload(doc.id, doc.fileData, doc.fileName)}
-                      className="gap-2 shadow-sm"
-                    >
-                      <FileDown className="w-4 h-4" /> Download PDF
-                    </Button>
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground/60 border-t border-white/5 pt-4">
+                      <span className="flex items-center gap-1"><GraduationCap className="w-3 h-3" /> {doc.program}</span>
+                      <span className="flex items-center gap-1"><Download className="w-3 h-3" /> {doc.downloadCount || 0} downloads</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground/60 italic">
+                        Ref: {doc.uploadDate ? new Date(doc.uploadDate).toLocaleDateString() : "Pending"}
+                      </span>
+                      <Button 
+                        size="sm" 
+                        variant="default"
+                        onClick={() => handleDownload(doc.id, doc.fileData, doc.fileName)}
+                        className="gap-2 rounded-xl px-4 h-10 shadow-lg shadow-primary/10"
+                      >
+                        <FileDown className="w-4 h-4" /> Download PDF
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -201,10 +210,10 @@ export default function DocumentGalleryPage() {
         )}
 
         {!isLoading && filteredDocs.length === 0 && (
-          <div className="text-center py-20 border-2 border-dashed rounded-xl bg-muted/20">
-            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-            <h3 className="text-xl font-semibold">No documents found</h3>
-            <p className="text-muted-foreground">Try adjusting your search or filters.</p>
+          <div className="text-center py-24 glass-card rounded-[2rem] border-dashed border-2 border-white/5">
+            <FileText className="w-16 h-16 text-muted-foreground/20 mx-auto mb-6" />
+            <h3 className="text-2xl font-bold font-headline mb-2">No documents found</h3>
+            <p className="text-muted-foreground">Adjust your filters or search keywords.</p>
           </div>
         )}
       </main>

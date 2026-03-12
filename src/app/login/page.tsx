@@ -18,7 +18,7 @@ export default function LoginPage() {
     if (error === "invalid_domain") {
       setErrorMsg("Access restricted to @neu.edu.ph email accounts only.");
     } else if (error === "blocked") {
-      setErrorMsg("Your account has been blocked by an administrator.");
+      setErrorMsg("Your access has been restricted by an administrator.");
     }
   }, [searchParams]);
 
@@ -31,42 +31,51 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <Card className="w-full max-w-md shadow-xl border-none">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-primary/10 flex items-center justify-center rounded-2xl">
-            <GraduationCap className="w-10 h-10 text-primary" />
+    <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+      <Card className="w-full max-w-md glass-card border-none rounded-[2.5rem] shadow-2xl overflow-hidden">
+        <CardHeader className="text-center space-y-6 pt-12">
+          <div className="mx-auto w-20 h-20 bg-primary/10 flex items-center justify-center rounded-[2rem] shadow-inner shadow-primary/20">
+            <GraduationCap className="w-12 h-12 text-primary" />
           </div>
           <div className="space-y-2">
-            <CardTitle className="text-3xl font-bold tracking-tight text-primary font-headline">
-              NEU Student Hub
+            <CardTitle className="text-4xl font-extrabold tracking-tight text-foreground font-headline">
+              NEU CICS Portal
             </CardTitle>
-            <CardDescription className="text-base">
-              Enter your credentials to access your student dashboard.
+            <CardDescription className="text-lg font-medium text-muted-foreground">
+              Sign in to your student workspace
             </CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-8 pb-12 px-8">
           {errorMsg && (
-            <Alert variant="destructive">
-              <AlertTitle>Login Error</AlertTitle>
-              <AlertDescription>{errorMsg}</AlertDescription>
+            <Alert variant="destructive" className="rounded-2xl border-destructive/20 bg-destructive/5">
+              <AlertTitle className="font-bold uppercase tracking-wider text-xs">Login Restricted</AlertTitle>
+              <AlertDescription className="text-sm">{errorMsg}</AlertDescription>
             </Alert>
           )}
 
           <Button 
             onClick={handleGoogleLogin} 
-            className="w-full h-12 text-lg font-medium bg-primary hover:bg-primary/90 transition-all flex items-center justify-center gap-3"
+            className="w-full h-16 text-lg font-bold bg-primary hover:bg-primary/90 transition-all flex items-center justify-center gap-3 rounded-2xl shadow-xl shadow-primary/20"
           >
-            <LogIn className="w-5 h-5" />
-            Continue with Google
+            <LogIn className="w-6 h-6" />
+            Continue with NEU Email
           </Button>
 
-          <p className="text-sm text-center text-muted-foreground px-6">
-            By logging in, you agree to follow the NEU Code of Conduct and Student Handbook.
-          </p>
+          <div className="space-y-4">
+            <p className="text-xs text-center text-muted-foreground/60 leading-relaxed max-w-xs mx-auto">
+              By logging in, you agree to the university digital code of conduct and student handbook.
+            </p>
+            <div className="h-px bg-white/5 w-full" />
+            <p className="text-[10px] text-center text-muted-foreground/40 uppercase tracking-widest font-bold">
+              Secure Auth Environment
+            </p>
+          </div>
         </CardContent>
       </Card>
+      
+      {/* Background Glow */}
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[150px] -z-10" />
     </div>
   );
 }

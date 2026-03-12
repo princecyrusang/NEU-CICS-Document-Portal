@@ -3,9 +3,8 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { db, storage } from "@/firebase";
+import { db } from "@/firebase";
 import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -15,9 +14,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Upload, Users, ShieldAlert, Loader2, UserX, UserCheck, 
+  Users, ShieldAlert, Loader2, UserX, UserCheck, 
   ArrowLeft, FilePlus, LayoutDashboard, BarChart3, TrendingUp,
-  FileText, Download
+  FileText, Download, Link as LinkIcon
 } from "lucide-react";
 import Link from "next/link";
 import { ADMIN_PROGRAM_OPTIONS, DOCUMENT_CATEGORIES } from "@/app/lib/programs";
@@ -28,7 +27,7 @@ import {
 export default function AdminPage() {
   const { profile } = useAuth();
   const { toast } = useToast();
-  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Data Fetching
   const usersQuery = useMemoFirebase(() => collection(db, "users"), []);
@@ -52,7 +51,7 @@ export default function AdminPage() {
     if (!documents) return [];
     const typeCounts: Record<string, number> = {};
     documents.forEach(doc => {
-      const cat = doc.category || doc.documentType || "Other";
+      const cat = doc.category || "Other";
       typeCounts[cat] = (typeCounts[cat] || 0) + 1;
     });
     return Object.entries(typeCounts).map(([name, value]) => ({ name, value }));
@@ -63,7 +62,7 @@ export default function AdminPage() {
     title: "",
     category: "",
     program: "All CICS",
-    file: null as File | null
+    fileUrl: ""
   });
 
   if (profile?.role !== 'admin') {
@@ -85,48 +84,37 @@ export default function AdminPage() {
     );
   }
 
-  const handleUpload = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newDoc.file || !newDoc.title || !newDoc.category || !newDoc.program) {
+    if (!newDoc.fileUrl || !newDoc.title || !newDoc.category || !newDoc.program) {
       toast({ variant: "destructive", title: "Error", description: "Please fill all fields." });
       return;
     }
 
-    setUploading(true);
+    setSubmitting(true);
     try {
-      // Storage Upload with contextual error reporting
-      const storageRef = ref(storage, `documents/${Date.now()}_${newDoc.file.name}`);
-      const snapshot = await uploadBytes(storageRef, newDoc.file);
-      const fileUrl = await getDownloadURL(snapshot.ref);
-
-      // Firestore Metadata update
+      // Add document metadata directly to Firestore
       await addDoc(collection(db, "documents"), {
         title: newDoc.title,
         category: newDoc.category,
         program: newDoc.program,
-        fileUrl,
+        fileUrl: newDoc.fileUrl,
         uploadDate: new Date().toISOString(),
         downloadCount: 0,
         uploadedBy: profile?.id,
         createdAt: serverTimestamp()
       });
 
-      toast({ title: "Success", description: "Document uploaded successfully!" });
-      setNewDoc({ title: "", category: "", program: "All CICS", file: null });
+      toast({ title: "Success", description: "Document added to repository!" });
+      setNewDoc({ title: "", category: "", program: "All CICS", fileUrl: "" });
     } catch (error: any) {
-      // Enhanced error surfacing for storage issues
-      const errorCode = error.code || "unknown";
-      const errorMessage = error.message || "An unexpected error occurred during upload.";
-      
-      console.error("Upload error details:", error);
-      
       toast({ 
         variant: "destructive", 
-        title: "Upload Failed", 
-        description: `[${errorCode}] ${errorMessage}. Please verify your network and Storage bucket status.`
+        title: "Submission Failed", 
+        description: error.message || "An unexpected error occurred."
       });
     } finally {
-      setUploading(false);
+      setSubmitting(false);
     }
   };
 
@@ -247,7 +235,7 @@ export default function AdminPage() {
                           <FileText className="w-5 h-5 text-primary" />
                           <div>
                             <p className="text-sm font-medium">{doc.title}</p>
-                            <p className="text-xs text-muted-foreground">{doc.category || doc.documentType}</p>
+                            <p className="text-xs text-muted-foreground">{doc.category}</p>
                           </div>
                         </div>
                         <Badge variant="outline">{new Date(doc.uploadDate).toLocaleDateString()}</Badge>
@@ -263,10 +251,10 @@ export default function AdminPage() {
             <Card className="max-w-2xl mx-auto border-none shadow-lg">
               <CardHeader>
                 <CardTitle className="font-headline">Add New Document</CardTitle>
-                <CardDescription>Upload course materials and define their access category.</CardDescription>
+                <CardDescription>Enter the external document URL to add it to the repository.</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleUpload} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Document Title</label>
                     <Input 
@@ -297,25 +285,21 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">PDF File</label>
-                    <div className="border-2 border-dashed border-muted rounded-xl p-8 text-center bg-muted/5">
+                    <label className="text-sm font-medium">Document URL (External Link)</label>
+                    <div className="relative">
+                      <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input 
-                        type="file" 
-                        accept=".pdf" 
-                        onChange={(e) => setNewDoc({...newDoc, file: e.target.files?.[0] || null})}
-                        className="hidden"
-                        id="file-upload"
+                        placeholder="https://example.com/document.pdf" 
+                        value={newDoc.fileUrl}
+                        onChange={(e) => setNewDoc({...newDoc, fileUrl: e.target.value})}
+                        className="h-12 pl-10"
                       />
-                      <label htmlFor="file-upload" className="cursor-pointer space-y-2 block">
-                        <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-                        <p className="text-sm font-medium">{newDoc.file ? newDoc.file.name : "Click to select or drag and drop PDF"}</p>
-                        <p className="text-xs text-muted-foreground">PDF only (max 10MB)</p>
-                      </label>
                     </div>
+                    <p className="text-xs text-muted-foreground italic">Provide a direct link to the document (e.g. Google Drive, Dropbox, or school site).</p>
                   </div>
-                  <Button type="submit" className="w-full h-12 text-lg font-medium" disabled={uploading}>
-                    {uploading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Upload className="mr-2 h-5 w-5" />}
-                    Upload to Repository
+                  <Button type="submit" className="w-full h-12 text-lg font-medium" disabled={submitting}>
+                    {submitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <FilePlus className="mr-2 h-5 w-5" />}
+                    Add to Repository
                   </Button>
                 </form>
               </CardContent>

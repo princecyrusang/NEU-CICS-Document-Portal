@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, Info } from "lucide-react";
+import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, Info, ExternalLink } from "lucide-react";
 import { DOCUMENT_CATEGORIES } from "@/app/lib/programs";
 import Link from "next/link";
 
@@ -25,7 +25,7 @@ export default function DocumentGalleryPage() {
   const filteredDocs = useMemo(() => {
     if (!documents) return [];
     return documents.filter(doc => {
-      const docCat = doc.category || doc.documentType || "Other";
+      const docCat = doc.category || "Other";
       const matchesSearch = doc.title.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === "all" || docCat === categoryFilter;
       
@@ -40,11 +40,17 @@ export default function DocumentGalleryPage() {
   }, [documents, searchTerm, categoryFilter, profile]);
 
   const handleDownload = async (docId: string, fileUrl: string) => {
-    const docRef = doc(db, "documents", docId);
-    updateDoc(docRef, {
-      downloadCount: increment(1)
-    });
-    window.open(fileUrl, "_blank");
+    try {
+      const docRef = doc(db, "documents", docId);
+      // Increment count in background
+      updateDoc(docRef, {
+        downloadCount: increment(1)
+      });
+      // Open link in new tab
+      window.open(fileUrl, "_blank");
+    } catch (error) {
+      console.error("Error handling document link:", error);
+    }
   };
 
   return (
@@ -115,7 +121,7 @@ export default function DocumentGalleryPage() {
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary">{doc.category || doc.documentType}</Badge>
+                      <Badge variant="secondary">{doc.category}</Badge>
                       {doc.program === 'All CICS' && (
                         <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 flex gap-1 items-center">
                           <Info className="w-3 h-3" /> All Programs
@@ -123,7 +129,7 @@ export default function DocumentGalleryPage() {
                       )}
                     </div>
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Download className="w-3 h-3" /> {doc.downloadCount}
+                      <Download className="w-3 h-3" /> {doc.downloadCount || 0}
                     </span>
                   </div>
                   <CardTitle className="text-lg font-headline line-clamp-1 group-hover:text-primary transition-colors">
@@ -136,14 +142,14 @@ export default function DocumentGalleryPage() {
                 <CardContent>
                   <div className="flex items-center justify-between mt-4">
                     <span className="text-xs text-muted-foreground">
-                      Added: {new Date(doc.uploadDate).toLocaleDateString()}
+                      Added: {doc.uploadDate ? new Date(doc.uploadDate).toLocaleDateString() : "Unknown"}
                     </span>
                     <Button 
                       size="sm" 
                       onClick={() => handleDownload(doc.id, doc.fileUrl)}
                       className="gap-2 shadow-sm"
                     >
-                      <Download className="w-4 h-4" /> Download
+                      <ExternalLink className="w-4 h-4" /> Open Link
                     </Button>
                   </div>
                 </CardContent>

@@ -6,13 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { GraduationCap, FileText, ShieldCheck, ArrowRight, Loader2, Zap } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function LandingPage() {
-  const { user, profile, loading } = useAuth();
-  const heroImage = PlaceHolderImages.find(img => img.id === 'hero-campus');
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -78,16 +75,13 @@ export default function LandingPage() {
                 )}
               </div>
             </div>
-            <div className="flex-1 w-full max-w-xl">
-              <div className="relative aspect-video rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-4 border-border group">
-                <Image 
-                  src={heroImage?.imageUrl || "https://picsum.photos/seed/neu/800/450"} 
-                  alt="NEU CICS Portal"
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-700"
-                  data-ai-hint="university campus"
+            <div className="flex-1 w-full flex justify-center items-center">
+              <div className="relative p-12 lg:p-20 bg-secondary/30 rounded-[3rem] border-4 border-border/50 shadow-[0_20px_50px_rgba(0,0,0,0.1)] group transition-all duration-500 hover:border-primary/20">
+                <GraduationCap 
+                  size={120} 
+                  className="text-foreground transition-transform duration-500 group-hover:scale-110" 
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                <div className="absolute -inset-4 bg-primary/5 rounded-[4rem] blur-2xl -z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
           </div>

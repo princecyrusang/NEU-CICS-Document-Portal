@@ -1,3 +1,4 @@
+
 "use client";
 
 import { signInWithPopup } from "firebase/auth";
@@ -34,8 +35,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-6 bg-background">
       <Card className="w-full max-w-md glass-card border-none rounded-[2.5rem] shadow-2xl overflow-hidden">
         <CardHeader className="text-center space-y-6 pt-12">
-          <div className="mx-auto w-20 h-20 bg-primary/10 flex items-center justify-center rounded-[2rem] shadow-inner shadow-primary/20">
-            <GraduationCap className="w-12 h-12 text-primary" />
+          <div className="mx-auto w-32 h-32 bg-secondary/50 flex items-center justify-center rounded-[3rem] shadow-inner border border-border">
+            <GraduationCap size={80} className="text-foreground" />
           </div>
           <div className="space-y-2">
             <CardTitle className="text-4xl font-extrabold tracking-tight text-foreground font-headline">

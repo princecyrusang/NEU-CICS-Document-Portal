@@ -5,29 +5,22 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
-// Manual bucket override is maintained for reference, but Storage use is being removed from logic
+// Consolidated configuration with fallback bucket
 const finalConfig = {
   ...firebaseConfig,
-  storageBucket: "studio-998152409-fbf64.firebasestorage.app"
+  storageBucket: firebaseConfig.storageBucket || "studio-998152409-fbf64.firebasestorage.app"
 };
 
-// Initialize Firebase App instance safely for SSR and CSR
-let firebaseApp: FirebaseApp;
-if (!getApps().length) {
-  firebaseApp = initializeApp(finalConfig);
-} else {
-  firebaseApp = getApp();
-}
+// Singleton initialization pattern safe for HMR/Turbopack
+const app: FirebaseApp = !getApps().length ? initializeApp(finalConfig) : getApp();
+const auth: Auth = getAuth(app);
+const db: Firestore = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
 
-// Export standard service instances
-export const auth: Auth = getAuth(firebaseApp);
-export const db: Firestore = getFirestore(firebaseApp);
-// Storage export is kept for types/initialization safety but its usage is removed from UI
-export const googleProvider = new GoogleAuthProvider();
+export { app as firebaseApp, auth, db, googleProvider };
 
-// Standard initialization function for the provider
 export function initializeFirebase() {
-  return { firebaseApp, auth, firestore: db };
+  return { firebaseApp: app, auth, firestore: db };
 }
 
 // Barrel re-exports
@@ -39,6 +32,4 @@ export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
-
-// Use the specialized useUser hook that returns { user, loading }
 export { useUser } from './auth/use-user';

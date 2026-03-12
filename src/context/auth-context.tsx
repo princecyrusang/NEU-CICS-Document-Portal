@@ -39,6 +39,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
+    let isMounted = true;
+
     async function syncProfile() {
       // 1. Wait for Auth state to initialize
       if (authLoading) return;
@@ -47,59 +49,78 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // 2. Domain Restriction Logic
         if (!user.email?.endsWith("@neu.edu.ph")) {
           await signOut(auth);
-          router.push("/login?error=invalid_domain");
-          setLoading(false);
+          if (isMounted) {
+            router.push("/login?error=invalid_domain");
+            setLoading(false);
+          }
           return;
         }
 
-        const userDocRef = doc(db, "users", user.uid);
-        const userDoc = await getDoc(userDocRef);
-        
-        if (userDoc.exists()) {
-          const data = userDoc.data() as UserProfile;
+        try {
+          const userDocRef = doc(db, "users", user.uid);
+          const userDoc = await getDoc(userDocRef);
           
-          // Administrative block check
-          if (data.isBlocked) {
-            await signOut(auth);
-            router.push("/login?error=blocked");
-            setLoading(false);
-            return;
+          if (!isMounted) return;
+
+          if (userDoc.exists()) {
+            const data = userDoc.data() as UserProfile;
+            
+            // Administrative block check
+            if (data.isBlocked) {
+              await signOut(auth);
+              router.push("/login?error=blocked");
+              setLoading(false);
+              return;
+            }
+            
+            setProfile(data);
+            
+            // 3. Onboarding Check: If 'program' is missing, redirect to onboarding
+            if (!data.program && pathname !== "/onboarding") {
+              router.push("/onboarding");
+            } else if (data.program && (pathname === "/onboarding" || pathname === "/login")) {
+              router.push("/dashboard");
+            }
+          } else {
+            // 4. Create initial profile for new @neu.edu.ph user with 'role: student'
+            const initialProfile: UserProfile = {
+              id: user.uid,
+              email: user.email!,
+              displayName: user.displayName || "New Student",
+              role: 'student',
+              isBlocked: false,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            };
+            await setDoc(userDocRef, initialProfile);
+            if (isMounted) {
+              setProfile(initialProfile);
+              router.push("/onboarding");
+            }
           }
-          
-          setProfile(data);
-          
-          // 3. Onboarding Check: If 'program' is missing, redirect to onboarding
-          if (!data.program && pathname !== "/onboarding") {
-            router.push("/onboarding");
-          } else if (data.program && (pathname === "/onboarding" || pathname === "/login")) {
-            router.push("/dashboard");
-          }
-        } else {
-          // 4. Create initial profile for new @neu.edu.ph user with 'role: student'
-          const initialProfile: UserProfile = {
-            id: user.uid,
-            email: user.email!,
-            displayName: user.displayName || "New Student",
-            role: 'student',
-            isBlocked: false,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          };
-          await setDoc(userDocRef, initialProfile);
-          setProfile(initialProfile);
-          router.push("/onboarding");
+        } catch (error) {
+          console.error("AuthContext: Profile sync failed", error);
         }
       } else {
-        setProfile(null);
-        const isPublicRoute = pathname === "/login" || pathname === "/";
-        if (!isPublicRoute) {
-          router.push("/login");
+        if (isMounted) {
+          setProfile(null);
+          const isPublicRoute = pathname === "/login" || pathname === "/";
+          if (!isPublicRoute) {
+            router.push("/login");
+          }
         }
       }
-      setLoading(false);
+      
+      if (isMounted) {
+        setLoading(false);
+      }
     }
 
     syncProfile();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, authLoading, pathname, router]);
 
   const logout = async () => {

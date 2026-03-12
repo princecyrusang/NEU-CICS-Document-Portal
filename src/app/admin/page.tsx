@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useCollection, useMemoFirebase } from "@/firebase";
 import { db } from "@/firebase";
@@ -30,7 +29,13 @@ export default function AdminPage() {
   const { profile } = useAuth();
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Hydration guard for charts
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Data Fetching
   const usersQuery = useMemoFirebase(() => collection(db, "users"), []);
@@ -221,22 +226,24 @@ export default function AdminPage() {
                   <CardDescription>File distribution by administrative category.</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[350px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#88888820" />
-                      <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{fill: 'currentColor', opacity: 0.6}} />
-                      <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{fill: 'currentColor', opacity: 0.6}} />
-                      <Tooltip 
-                        cursor={{fill: 'currentColor', opacity: 0.05}}
-                        contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}
-                      />
-                      <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={40}>
-                        {chartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={`hsl(var(--primary) / ${1 - index * 0.1})`} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {isClient && (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#88888820" />
+                        <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{fill: 'currentColor', opacity: 0.6}} />
+                        <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{fill: 'currentColor', opacity: 0.6}} />
+                        <Tooltip 
+                          cursor={{fill: 'currentColor', opacity: 0.05}}
+                          contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}
+                        />
+                        <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={40}>
+                          {chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={`hsl(var(--primary) / ${1 - index * 0.1})`} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
                 </CardContent>
               </Card>
 

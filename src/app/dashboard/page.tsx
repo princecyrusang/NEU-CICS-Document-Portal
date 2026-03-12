@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, Info, ExternalLink, ShieldX } from "lucide-react";
+import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, Info, FileDown, ShieldX } from "lucide-react";
 import { DOCUMENT_CATEGORIES } from "@/app/lib/programs";
 import Link from "next/link";
 
@@ -29,8 +29,6 @@ export default function DocumentGalleryPage() {
       const matchesSearch = doc.title.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === "all" || docCat === categoryFilter;
       
-      // Program visibility logic: Students see 'All CICS' + their own program
-      // Admins see everything.
       const isVisibleForUser = profile?.role === 'admin' || 
                                doc.program === 'All CICS' || 
                                doc.program === profile?.program;
@@ -39,21 +37,39 @@ export default function DocumentGalleryPage() {
     });
   }, [documents, searchTerm, categoryFilter, profile]);
 
-  const handleDownload = async (docId: string, fileUrl: string) => {
+  const handleDownload = (docId: string, base64Data: string, fileName: string) => {
     try {
+      // 1. Increment count in background
       const docRef = doc(db, "documents", docId);
-      // Increment count in background
       updateDoc(docRef, {
         downloadCount: increment(1)
       });
-      // Open link in new tab
-      window.open(fileUrl, "_blank");
+
+      // 2. Convert Base64 back to Blob and trigger download
+      const byteString = atob(base64Data.split(',')[1]);
+      const mimeString = base64Data.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeString });
+      
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName || 'document.pdf');
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Error handling document link:", error);
+      console.error("Error handling document download:", error);
     }
   };
 
-  // Blocked user restriction
   if (profile?.isBlocked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -110,7 +126,7 @@ export default function DocumentGalleryPage() {
           <div className="w-full md:w-1/2 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input 
-              placeholder="Search documents..." 
+              placeholder="Search documents by title..." 
               className="pl-10" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -137,7 +153,7 @@ export default function DocumentGalleryPage() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <Loader2 className="w-12 h-12 text-primary animate-spin" />
-            <p className="text-muted-foreground">Loading repository...</p>
+            <p className="text-muted-foreground">Loading Firestore repository...</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -171,10 +187,11 @@ export default function DocumentGalleryPage() {
                     </span>
                     <Button 
                       size="sm" 
-                      onClick={() => handleDownload(doc.id, doc.fileUrl)}
+                      variant="default"
+                      onClick={() => handleDownload(doc.id, doc.fileData, doc.fileName)}
                       className="gap-2 shadow-sm"
                     >
-                      <ExternalLink className="w-4 h-4" /> Open Link
+                      <FileDown className="w-4 h-4" /> Download PDF
                     </Button>
                   </div>
                 </CardContent>

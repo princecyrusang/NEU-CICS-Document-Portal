@@ -4,9 +4,8 @@ import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
 
-// Manual bucket override as requested to bypass console initialization issues
+// Manual bucket override is maintained for reference, but Storage use is being removed from logic
 const finalConfig = {
   ...firebaseConfig,
   storageBucket: "studio-998152409-fbf64.firebasestorage.app"
@@ -23,12 +22,12 @@ if (!getApps().length) {
 // Export standard service instances
 export const auth: Auth = getAuth(firebaseApp);
 export const db: Firestore = getFirestore(firebaseApp);
-export const storage: FirebaseStorage = getStorage(firebaseApp);
+// Storage export is kept for types/initialization safety but its usage is removed from UI
 export const googleProvider = new GoogleAuthProvider();
 
 // Standard initialization function for the provider
 export function initializeFirebase() {
-  return { firebaseApp, auth, firestore: db, storage };
+  return { firebaseApp, auth, firestore: db };
 }
 
 // Barrel re-exports

@@ -1,12 +1,10 @@
-
 "use client";
 
 import { useState, useMemo, useRef } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { db, storage } from "@/firebase";
+import { db } from "@/firebase";
 import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -66,7 +64,7 @@ export default function AdminPage() {
     category: "",
     program: "All CICS",
   });
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFile, setSelectedFile] = useState<{ name: string; base64: string } | null>(null);
 
   if (profile?.role !== 'admin') {
     return (
@@ -88,8 +86,24 @@ export default function AdminPage() {
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 1024 * 700) { // ~700KB limit due to Firestore 1MB doc limit (Base64 adds ~33% overhead)
+        toast({ 
+          variant: "destructive", 
+          title: "File too large", 
+          description: "Please keep files under 700KB for Firestore storage." 
+        });
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        setSelectedFile({ name: file.name, base64 });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -102,26 +116,20 @@ export default function AdminPage() {
 
     setSubmitting(true);
     try {
-      // 1. Upload file to Firebase Storage
-      const storageRef = ref(storage, `cics_vault/${Date.now()}_${selectedFile.name}`);
-      const uploadResult = await uploadBytes(storageRef, selectedFile);
-      
-      // 2. Get Download URL
-      const downloadUrl = await getDownloadURL(uploadResult.ref);
-
-      // 3. Save metadata to Firestore 'documents' collection
+      // Save directly to Firestore using Base64
       await addDoc(collection(db, "documents"), {
         title: newDoc.title,
         category: newDoc.category,
         program: newDoc.program,
-        fileUrl: downloadUrl,
+        fileData: selectedFile.base64,
+        fileName: selectedFile.name,
         uploadDate: new Date().toISOString(),
         downloadCount: 0,
         uploadedBy: profile?.id,
         createdAt: serverTimestamp()
       });
 
-      toast({ title: "Success", description: "Document uploaded and added to repository!" });
+      toast({ title: "Success", description: "Document added to repository via Firestore!" });
       setNewDoc({ title: "", category: "", program: "All CICS" });
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -220,7 +228,7 @@ export default function AdminPage() {
                   <CardTitle className="text-lg font-headline flex items-center gap-2">
                     <TrendingUp className="w-5 h-5 text-primary" /> Repository Distribution
                   </CardTitle>
-                  <CardDescription>Number of files per category.</CardDescription>
+                  <CardDescription>Number of files per category (Firestore Storage).</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
@@ -244,7 +252,7 @@ export default function AdminPage() {
               <Card className="col-span-1">
                 <CardHeader>
                   <CardTitle className="text-lg font-headline">Recent Activity</CardTitle>
-                  <CardDescription>Latest uploads and user actions.</CardDescription>
+                  <CardDescription>Latest entries in the repository.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -269,8 +277,8 @@ export default function AdminPage() {
           <TabsContent value="upload">
             <Card className="max-w-2xl mx-auto border-none shadow-lg">
               <CardHeader>
-                <CardTitle className="font-headline">Upload New Document</CardTitle>
-                <CardDescription>Upload a PDF file and set its metadata for the repository.</CardDescription>
+                <CardTitle className="font-headline">Add New Document Entry</CardTitle>
+                <CardDescription>Upload a PDF (max 700KB) to be stored directly in Firestore.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -304,7 +312,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">File Upload (PDF)</label>
+                    <label className="text-sm font-medium">File Upload (PDF - Max 700KB)</label>
                     <div 
                       className="border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-4 bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer"
                       onClick={() => fileInputRef.current?.click()}
@@ -312,7 +320,7 @@ export default function AdminPage() {
                       <UploadCloud className="w-12 h-12 text-primary opacity-50" />
                       <div className="text-center">
                         <p className="font-medium">{selectedFile ? selectedFile.name : "Select PDF file"}</p>
-                        <p className="text-xs text-muted-foreground italic">Click to browse your device</p>
+                        <p className="text-xs text-muted-foreground italic">File will be encoded in Base64 for Firestore</p>
                       </div>
                       <input 
                         type="file" 
@@ -325,7 +333,7 @@ export default function AdminPage() {
                   </div>
                   <Button type="submit" className="w-full h-12 text-lg font-medium" disabled={submitting}>
                     {submitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <FileUp className="mr-2 h-5 w-5" />}
-                    Upload to Repository
+                    Save to Firestore Repository
                   </Button>
                 </form>
               </CardContent>

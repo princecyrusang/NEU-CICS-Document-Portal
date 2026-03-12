@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "UserProfile": {
@@ -22,18 +21,19 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AcademicDocument",
       "type": "object",
-      "description": "Metadata for uploaded academic resources stored in the 'documents' collection.",
+      "description": "Metadata and Base64 file data for academic resources stored in the 'documents' collection.",
       "properties": {
         "id": { "type": "string" },
         "title": { "type": "string" },
         "category": { "type": "string", "enum": ["Enrollment & Subjects", "OJT & Internship", "Graduation", "Administrative Requests", "Department Memos", "Other"] },
         "program": { "type": "string" },
-        "fileUrl": { "type": "string", "format": "uri" },
+        "fileData": { "type": "string", "description": "Base64 encoded string of the PDF file." },
+        "fileName": { "type": "string" },
         "uploadDate": { "type": "string", "format": "date-time" },
         "downloadCount": { "type": "number" },
         "uploadedBy": { "type": "string" }
       },
-      "required": ["title", "category", "program", "fileUrl", "uploadDate", "downloadCount"]
+      "required": ["title", "category", "program", "fileData", "fileName", "uploadDate", "downloadCount"]
     }
   },
   "auth": {
@@ -52,7 +52,7 @@
         "path": "/documents/{docId}",
         "definition": {
           "entityName": "AcademicDocument",
-          "description": "Metadata for repository files, searchable by students."
+          "description": "Metadata and Base64 encoded PDF files for the repository."
         }
       }
     ]

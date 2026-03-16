@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, FileDown, ShieldX, GraduationCap, Lock } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, FileDown, ShieldAlert, GraduationCap, Lock, AlertCircle } from "lucide-react";
 import { DOCUMENT_CATEGORIES } from "@/app/lib/programs";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -43,20 +44,22 @@ export default function DocumentGalleryPage() {
     if (profile?.isBlocked) return;
 
     try {
-      // Sprint 4: Download Tracker
-      // Log the download event
+      // Sprint 4: Download Tracker - Log with required fields
       addDoc(collection(db, "logs"), {
-        userId: user?.uid,
-        docTitle: docTitle,
+        email: profile?.email,
+        program: profile?.program,
+        documentTitle: docTitle,
         docId: docId,
-        timestamp: serverTimestamp()
+        date: serverTimestamp()
       });
 
+      // Increment download count on the document
       const docRef = doc(db, "documents", docId);
       updateDoc(docRef, {
         downloadCount: increment(1)
       });
 
+      // Convert Base64 to Blob and Download
       const byteString = atob(base64Data.split(',')[1]);
       const mimeString = base64Data.split(',')[0].split(':')[1].split(';')[0];
       const ab = new ArrayBuffer(byteString.length);
@@ -118,15 +121,15 @@ export default function DocumentGalleryPage() {
       </header>
 
       <main className="container mx-auto px-4 py-10 max-w-7xl">
-        {/* Sprint 3: Block Enforcement UI Notice */}
+        {/* Block Enforcement UI Notice */}
         {profile?.isBlocked && (
-          <div className="mb-8 p-6 bg-destructive/10 border border-destructive/20 rounded-3xl flex items-center gap-4 text-destructive">
-            <ShieldX className="w-8 h-8 flex-shrink-0" />
-            <div>
-              <p className="font-bold text-lg leading-none">Account Restricted</p>
-              <p className="text-sm opacity-80 mt-1">Your download privileges have been disabled by the administration.</p>
-            </div>
-          </div>
+          <Alert variant="destructive" className="mb-10 rounded-3xl border-2 bg-destructive/5 animate-pulse">
+            <AlertCircle className="h-6 w-6" />
+            <AlertTitle className="text-lg font-bold">Your account is restricted.</AlertTitle>
+            <AlertDescription className="text-base opacity-90">
+              Access to official document downloads has been suspended by the administration. Please contact the CICS office for more information.
+            </AlertDescription>
+          </Alert>
         )}
 
         <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
@@ -168,7 +171,7 @@ export default function DocumentGalleryPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredDocs.map((doc) => (
-              <Card key={doc.id} className="border-border glass-card card-glow rounded-3xl group transition-all overflow-hidden">
+              <Card key={doc.id} className="border-border glass-card card-glow rounded-3xl group transition-all overflow-hidden relative">
                 <CardHeader className="pb-4">
                   <div className="flex justify-between items-start mb-4">
                     <Badge variant="secondary" className="rounded-lg bg-primary/10 text-primary border-none">{doc.category}</Badge>
@@ -183,25 +186,21 @@ export default function DocumentGalleryPage() {
                       <span className="flex items-center gap-1"><GraduationCap className="w-3 h-3" /> {doc.program === "All CICS" ? "All Programs" : doc.program}</span>
                       <span className="flex items-center gap-1"><Download className="w-3 h-3" /> {doc.downloadCount || 0} downloads</span>
                     </div>
-                    <div className="flex items-center justify-end">
-                      {/* Sprint 3: Block Enforcement - Disable buttons */}
-                      <Button 
-                        size="sm" 
-                        variant={profile?.isBlocked ? "secondary" : "default"}
-                        disabled={profile?.isBlocked}
-                        onClick={() => handleDownload(doc.id, doc.fileData, doc.fileName, doc.title)}
-                        className="gap-2 rounded-xl px-4 h-10 shadow-lg shadow-primary/10 disabled:opacity-50"
-                      >
-                        {profile?.isBlocked ? (
-                          <>
-                            <Lock className="w-4 h-4" /> Account Restricted
-                          </>
-                        ) : (
-                          <>
-                            <FileDown className="w-4 h-4" /> Download PDF
-                          </>
-                        )}
-                      </Button>
+                    <div className="flex items-center justify-end h-10">
+                      {/* Block Enforcement - Hide buttons when blocked */}
+                      {!profile?.isBlocked ? (
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleDownload(doc.id, doc.fileData, doc.fileName, doc.title)}
+                          className="gap-2 rounded-xl px-4 h-10 shadow-lg shadow-primary/10"
+                        >
+                          <FileDown className="w-4 h-4" /> Download PDF
+                        </Button>
+                      ) : (
+                        <Badge variant="outline" className="text-destructive border-destructive/20 gap-2 px-3 py-2 bg-destructive/5">
+                          <Lock className="w-3 h-3" /> Restricted
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </CardContent>

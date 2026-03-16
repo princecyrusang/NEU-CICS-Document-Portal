@@ -17,7 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Users, ShieldAlert, Loader2, UserX, UserCheck, 
   ArrowLeft, FilePlus, LayoutDashboard, BarChart3, TrendingUp,
-  FileText, Download, UploadCloud, FileUp, GraduationCap, History
+  FileText, Download, UploadCloud, FileUp, GraduationCap, History,
+  Activity
 } from "lucide-react";
 import Link from "next/link";
 import { ADMIN_PROGRAM_OPTIONS, DOCUMENT_CATEGORIES } from "@/app/lib/programs";
@@ -44,7 +45,7 @@ export default function AdminPage() {
   const docsQuery = useMemoFirebase(() => collection(db, "documents"), []);
   const { data: documents, isLoading: docsLoading } = useCollection(docsQuery);
 
-  // Sprint 4: Analytics View - Logs Collection
+  // Analytics View - Logs Collection
   const logsQuery = useMemoFirebase(() => collection(db, "logs"), []);
   const { data: logs } = useCollection(logsQuery);
 
@@ -57,9 +58,9 @@ export default function AdminPage() {
     const monthStart = startOfMonth(now);
 
     return {
-      today: logs.filter(l => l.timestamp && isAfter(l.timestamp.toDate(), dayStart)).length,
-      week: logs.filter(l => l.timestamp && isAfter(l.timestamp.toDate(), weekStart)).length,
-      month: logs.filter(l => l.timestamp && isAfter(l.timestamp.toDate(), monthStart)).length
+      today: logs.filter(l => l.date && isAfter(l.date.toDate(), dayStart)).length,
+      week: logs.filter(l => l.date && isAfter(l.date.toDate(), weekStart)).length,
+      month: logs.filter(l => l.date && isAfter(l.date.toDate(), monthStart)).length
     };
   }, [logs]);
 
@@ -169,6 +170,7 @@ export default function AdminPage() {
 
   const toggleBlockUser = async (userId: string, currentStatus: boolean) => {
     try {
+      // Block Logic: Update isBlocked toggle in the users document
       await updateDoc(doc(db, "users", userId), {
         isBlocked: !currentStatus,
         updatedAt: serverTimestamp()
@@ -217,32 +219,38 @@ export default function AdminPage() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-10">
-            {/* Sprint 4: Analytics View - Time-based Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-               <Card className="glass-card border-none rounded-[1.5rem] bg-primary/5">
-                  <CardHeader className="pb-2">
-                    <CardDescription className="flex items-center gap-2 font-medium">
-                      <History className="w-4 h-4 text-primary" /> Downloads Today
-                    </CardDescription>
-                    <CardTitle className="text-4xl font-bold tracking-tight">{analytics.today}</CardTitle>
-                  </CardHeader>
-                </Card>
-                <Card className="glass-card border-none rounded-[1.5rem] bg-primary/5">
-                  <CardHeader className="pb-2">
-                    <CardDescription className="flex items-center gap-2 font-medium">
-                      <History className="w-4 h-4 text-primary" /> This Week
-                    </CardDescription>
-                    <CardTitle className="text-4xl font-bold tracking-tight">{analytics.week}</CardTitle>
-                  </CardHeader>
-                </Card>
-                <Card className="glass-card border-none rounded-[1.5rem] bg-primary/5">
-                  <CardHeader className="pb-2">
-                    <CardDescription className="flex items-center gap-2 font-medium">
-                      <History className="w-4 h-4 text-primary" /> This Month
-                    </CardDescription>
-                    <CardTitle className="text-4xl font-bold tracking-tight">{analytics.month}</CardTitle>
-                  </CardHeader>
-                </Card>
+            {/* Download Analytics Dashboard - Period of Inquiry */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <Activity className="w-6 h-6 text-primary" />
+                <h2 className="text-2xl font-bold font-headline">Download Analytics</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="glass-card border-none rounded-[1.5rem] bg-primary/5 hover:bg-primary/10 transition-colors">
+                    <CardHeader className="pb-2">
+                      <CardDescription className="flex items-center gap-2 font-medium">
+                        <History className="w-4 h-4 text-primary" /> Downloads Today
+                      </CardDescription>
+                      <CardTitle className="text-4xl font-bold tracking-tight">{analytics.today}</CardTitle>
+                    </CardHeader>
+                  </Card>
+                  <Card className="glass-card border-none rounded-[1.5rem] bg-primary/5 hover:bg-primary/10 transition-colors">
+                    <CardHeader className="pb-2">
+                      <CardDescription className="flex items-center gap-2 font-medium">
+                        <History className="w-4 h-4 text-primary" /> This Week
+                      </CardDescription>
+                      <CardTitle className="text-4xl font-bold tracking-tight">{analytics.week}</CardTitle>
+                    </CardHeader>
+                  </Card>
+                  <Card className="glass-card border-none rounded-[1.5rem] bg-primary/5 hover:bg-primary/10 transition-colors">
+                    <CardHeader className="pb-2">
+                      <CardDescription className="flex items-center gap-2 font-medium">
+                        <History className="w-4 h-4 text-primary" /> This Month
+                      </CardDescription>
+                      <CardTitle className="text-4xl font-bold tracking-tight">{analytics.month}</CardTitle>
+                    </CardHeader>
+                  </Card>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -250,7 +258,7 @@ export default function AdminPage() {
                 { label: 'Total Enrolled', value: stats.totalUsers, icon: Users, color: 'text-primary' },
                 { label: 'Blocked Access', value: stats.blockedUsers, icon: UserX, color: 'text-destructive' },
                 { label: 'Repo Assets', value: stats.totalDocs, icon: FileText, color: 'text-accent' },
-                { label: 'Total Logs', value: logs?.length || 0, icon: Download, color: 'text-foreground' }
+                { label: 'Overall Logs', value: logs?.length || 0, icon: Download, color: 'text-foreground' }
               ].map((item, i) => (
                 <Card key={i} className="glass-card border-none rounded-[1.5rem] card-glow">
                   <CardHeader className="pb-2">
@@ -307,8 +315,8 @@ export default function AdminPage() {
                             <Download className="w-5 h-5 text-primary" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold">{log.docTitle}</p>
-                            <p className="text-xs text-muted-foreground">{log.timestamp ? log.timestamp.toDate().toLocaleString() : 'Just now'}</p>
+                            <p className="text-sm font-semibold">{log.documentTitle || log.docTitle}</p>
+                            <p className="text-xs text-muted-foreground">{log.email} • {log.date ? log.date.toDate().toLocaleString() : 'Just now'}</p>
                           </div>
                         </div>
                       </div>

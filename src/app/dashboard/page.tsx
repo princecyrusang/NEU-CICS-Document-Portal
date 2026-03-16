@@ -48,16 +48,17 @@ export default function DocumentGalleryPage() {
     if (profile?.isBlocked) return;
 
     try {
-      // 1. Fetch the file as a Blob (binary data) first to ensure data integrity
+      // 1. Fetch logic: Use fetch(base64Data) to ensure binary data is ready
       const response = await fetch(base64Data);
       
       if (!response.ok) {
-        throw new Error("Failed to process document binary data.");
+        throw new Error("Failed to prepare document binary data.");
       }
 
       const blob = await response.blob();
 
-      // 2. Only call the 'addDoc' to the 'logs' collection AFTER the fetch request returns a status of 200 (Success)
+      // 2. Async Trigger: ONLY after response.ok is true, update the database
+      // Log the activity
       addDoc(collection(db, "logs"), {
         userEmail: profile?.email,
         fileName: docTitle,
@@ -65,13 +66,13 @@ export default function DocumentGalleryPage() {
         timestamp: serverTimestamp()
       });
 
-      // 3. Update the document's download count
+      // Increment the download count
       const docRef = doc(db, "documents", docId);
       updateDoc(docRef, {
         downloadCount: increment(1)
       });
 
-      // 4. Trigger the actual browser download
+      // 3. Download Execution: Trigger browser's download dialog after DB triggers
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -79,11 +80,12 @@ export default function DocumentGalleryPage() {
       document.body.appendChild(link);
       link.click();
       
+      // Cleanup
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+      
     } catch (error) {
-      console.error("Download process interrupted:", error);
-      // Note: No log is created if the binary fetch fails, satisfying the "binary-first" requirement.
+      console.error("Download pipeline error:", error);
     }
   };
 

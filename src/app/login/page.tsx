@@ -8,9 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { GraduationCap, LogIn, Loader2 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -20,13 +20,16 @@ export default function LoginPage() {
     const error = searchParams.get("error");
     if (error === "invalid_domain") {
       setErrorMsg("Access restricted to @neu.edu.ph email accounts only.");
+      setIsLoggingIn(false);
     } else if (error === "blocked") {
       setErrorMsg("Your access has been restricted by an administrator.");
+      setIsLoggingIn(false);
     }
   }, [searchParams]);
 
   const handleGoogleLogin = async () => {
     setIsLoggingIn(true);
+    setErrorMsg(null);
     try {
       await signInWithPopup(auth, googleProvider);
       // Non-blocking redirect: The AuthContext will handle the heavy lifting,
@@ -34,10 +37,13 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (error: any) {
       console.error("Login failed", error);
-      setIsLoggingIn(false);
       if (error.code !== 'auth/popup-closed-by-user') {
         setErrorMsg("Failed to sign in. Please try again.");
       }
+    } finally {
+      // Ensure the button state returns to normal regardless of the outcome.
+      // If sign-in was successful, the redirect will happen shortly.
+      setIsLoggingIn(false);
     }
   };
 
@@ -95,5 +101,17 @@ export default function LoginPage() {
       {/* Background Glow */}
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[150px] -z-10" />
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-12 h-12 text-primary animate-spin" />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

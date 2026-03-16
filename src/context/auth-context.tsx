@@ -46,6 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (authLoading) return;
 
       if (user) {
+        // Immediate Domain Validation
         if (!user.email?.endsWith("@neu.edu.ph")) {
           await signOut(auth);
           if (isMounted) {
@@ -67,19 +68,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const data = userDoc.data() as UserProfile;
             setProfile(data);
             
-            // Sprint 3 & Sprint 1: Redirection Logic
+            // Redirection Logic
             if (data.isBlocked) {
-              // Stay on Dashboard if blocked
               if (pathname !== "/dashboard" && pathname !== "/login") {
                 router.push("/dashboard");
               }
             } else if (!data.program && pathname !== "/onboarding" && pathname !== "/login") {
-              // Sprint 1: Forced Setup if program is missing
               router.push("/onboarding");
-            } else if (data.program && pathname === "/onboarding") {
+            } else if (data.program && (pathname === "/onboarding" || pathname === "/login")) {
               router.push("/dashboard");
             }
           } else {
+            // New User Creation
             const initialProfile: UserProfile = {
               id: user.uid,
               email: user.email!,
@@ -98,9 +98,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } catch (error: any) {
           if (!isMounted) return;
 
-          // Silent Fail for Blocked Users: Catch permission-denied
+          // Silent Fail Strategy: Fallback to a restricted profile to avoid "Freezing"
           if (error.code === 'permission-denied' || error.message?.toLowerCase().includes('permission')) {
-            const blockedProfile: UserProfile = {
+            setProfile({
               id: user.uid,
               email: user.email!,
               displayName: user.displayName || "Restricted User",
@@ -108,15 +108,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               isBlocked: true,
               createdAt: null,
               updatedAt: null,
-            };
-            setProfile(blockedProfile);
-            
-            // Ensure they stay on Dashboard to see the restriction banner
-            if (pathname !== "/dashboard" && pathname !== "/login") {
+            });
+          } else {
+            console.warn("AuthContext profile sync warning:", error.message);
+            // Fallback: If we have a user but sync failed, assume standard access to prevent hang
+            if (pathname === "/login") {
               router.push("/dashboard");
             }
-          } else {
-            console.error("AuthContext sync error:", error);
           }
         }
       } else {
@@ -146,6 +144,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     router.push("/login");
   };
 
+  // Combine loading states for the provider
   const isInitialLoading = authLoading || (user && loading);
 
   return (

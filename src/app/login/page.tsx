@@ -5,14 +5,16 @@ import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, LogIn } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { GraduationCap, LogIn, Loader2 } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useEffect, useState } from "react";
 
 export default function LoginPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
     const error = searchParams.get("error");
@@ -24,16 +26,24 @@ export default function LoginPage() {
   }, [searchParams]);
 
   const handleGoogleLogin = async () => {
+    setIsLoggingIn(true);
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
+      // Non-blocking redirect: The AuthContext will handle the heavy lifting,
+      // but we proactively push to the dashboard to avoid any "freeze".
+      router.push("/dashboard");
+    } catch (error: any) {
       console.error("Login failed", error);
+      setIsLoggingIn(false);
+      if (error.code !== 'auth/popup-closed-by-user') {
+        setErrorMsg("Failed to sign in. Please try again.");
+      }
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-background">
-      <Card className="w-full max-w-md glass-card border-none rounded-[2.5rem] shadow-2xl overflow-hidden">
+      <Card className="w-full max-w-md glass-card border-none rounded-[2.5rem] shadow-2xl overflow-hidden relative">
         <CardHeader className="text-center space-y-6 pt-12">
           <div className="mx-auto w-32 h-32 bg-secondary/50 flex items-center justify-center rounded-[3rem] shadow-inner border border-border">
             <GraduationCap size={80} className="text-foreground" />
@@ -57,10 +67,17 @@ export default function LoginPage() {
 
           <Button 
             onClick={handleGoogleLogin} 
+            disabled={isLoggingIn}
             className="w-full h-16 text-lg font-bold bg-primary hover:bg-primary/90 transition-all flex items-center justify-center gap-3 rounded-2xl shadow-xl shadow-primary/20"
           >
-            <LogIn className="w-6 h-6" />
-            Continue with NEU Email
+            {isLoggingIn ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : (
+              <>
+                <LogIn className="w-6 h-6" />
+                Continue with NEU Email
+              </>
+            )}
           </Button>
 
           <div className="space-y-4">

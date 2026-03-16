@@ -48,7 +48,16 @@ export default function DocumentGalleryPage() {
     if (profile?.isBlocked) return;
 
     try {
-      // Standardized Log Entry
+      // 1. Fetch the file as a Blob (binary data) first to ensure data integrity
+      const response = await fetch(base64Data);
+      
+      if (!response.ok) {
+        throw new Error("Failed to process document binary data.");
+      }
+
+      const blob = await response.blob();
+
+      // 2. Only call the 'addDoc' to the 'logs' collection AFTER the fetch request returns a status of 200 (Success)
       addDoc(collection(db, "logs"), {
         userEmail: profile?.email,
         fileName: docTitle,
@@ -56,20 +65,13 @@ export default function DocumentGalleryPage() {
         timestamp: serverTimestamp()
       });
 
+      // 3. Update the document's download count
       const docRef = doc(db, "documents", docId);
       updateDoc(docRef, {
         downloadCount: increment(1)
       });
 
-      const byteString = atob(base64Data.split(',')[1]);
-      const mimeString = base64Data.split(',')[0].split(':')[1].split(';')[0];
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-      const blob = new Blob([ab], { type: mimeString });
-      
+      // 4. Trigger the actual browser download
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -80,7 +82,8 @@ export default function DocumentGalleryPage() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Download failed:", error);
+      console.error("Download process interrupted:", error);
+      // Note: No log is created if the binary fetch fails, satisfying the "binary-first" requirement.
     }
   };
 

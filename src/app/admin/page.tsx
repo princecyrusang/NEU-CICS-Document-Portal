@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -39,16 +38,28 @@ export default function AdminPage() {
     setIsClient(true);
   }, []);
 
-  const usersQuery = useMemoFirebase(() => collection(db, "users"), []);
+  // Permission Guards: Only query collections if the user is an admin
+  const usersQuery = useMemoFirebase(() => {
+    if (profile?.role !== 'admin') return null;
+    return collection(db, "users");
+  }, [profile]);
+  
   const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
 
-  const docsQuery = useMemoFirebase(() => collection(db, "documents"), []);
+  const docsQuery = useMemoFirebase(() => {
+    if (profile?.role !== 'admin') return null;
+    return collection(db, "documents");
+  }, [profile]);
+  
   const { data: documents, isLoading: docsLoading } = useCollection(docsQuery);
 
-  const logsQuery = useMemoFirebase(() => collection(db, "logs"), []);
+  const logsQuery = useMemoFirebase(() => {
+    if (profile?.role !== 'admin') return null;
+    return collection(db, "logs");
+  }, [profile]);
+  
   const { data: logs } = useCollection(logsQuery);
 
-  // Sprint 4: Period of Inquiry Analytics
   const analytics = useMemo(() => {
     if (!logs) return { today: 0, week: 0, month: 0 };
     

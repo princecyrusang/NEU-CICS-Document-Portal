@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -12,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, FileDown, ShieldAlert, GraduationCap, Lock, AlertCircle, AlertTriangle } from "lucide-react";
+import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, FileDown, GraduationCap, Lock, AlertTriangle } from "lucide-react";
 import { DOCUMENT_CATEGORIES } from "@/app/lib/programs";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -22,7 +21,12 @@ export default function DocumentGalleryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
-  const docsQuery = useMemoFirebase(() => collection(db, "documents"), []);
+  // Sprint 3 & Permission Guard: Wait for profile before querying documents
+  const docsQuery = useMemoFirebase(() => {
+    if (!profile) return null;
+    return collection(db, "documents");
+  }, [profile]);
+
   const { data: documents, isLoading } = useCollection(docsQuery);
 
   const filteredDocs = useMemo(() => {
@@ -44,7 +48,7 @@ export default function DocumentGalleryPage() {
     if (profile?.isBlocked) return;
 
     try {
-      // Sprint 4: Download Tracker - Log the activity
+      // Sprint 4: Download Tracker
       addDoc(collection(db, "logs"), {
         email: profile?.email,
         program: profile?.program || "Unassigned",
@@ -53,13 +57,11 @@ export default function DocumentGalleryPage() {
         date: serverTimestamp()
       });
 
-      // Increment download count on the document metadata
       const docRef = doc(db, "documents", docId);
       updateDoc(docRef, {
         downloadCount: increment(1)
       });
 
-      // Convert Base64 to Blob and trigger local download
       const byteString = atob(base64Data.split(',')[1]);
       const mimeString = base64Data.split(',')[0].split(':')[1].split(';')[0];
       const ab = new ArrayBuffer(byteString.length);
@@ -121,7 +123,6 @@ export default function DocumentGalleryPage() {
       </header>
 
       <main className="container mx-auto px-4 py-10 max-w-7xl">
-        {/* Sprint 3: Block Enforcement UI Notice */}
         {profile?.isBlocked && (
           <Alert variant="destructive" className="mb-10 rounded-3xl border-2 bg-destructive/10 border-destructive animate-pulse py-6">
             <div className="flex items-center gap-4">
@@ -191,7 +192,6 @@ export default function DocumentGalleryPage() {
                       <span className="flex items-center gap-1"><Download className="w-3 h-3" /> {doc.downloadCount || 0}</span>
                     </div>
                     <div className="flex items-center justify-end h-10">
-                      {/* Sprint 3: Conditional Download Logic */}
                       {!profile?.isBlocked ? (
                         <Button 
                           size="sm" 

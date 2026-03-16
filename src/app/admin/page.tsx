@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useCollection, useMemoFirebase } from "@/firebase";
 import { db } from "@/firebase";
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, updateDoc, query, orderBy } from "firebase/firestore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,6 @@ export default function AdminPage() {
     setIsClient(true);
   }, []);
 
-  // Permission Guards: Only query collections if the user is an admin
   const usersQuery = useMemoFirebase(() => {
     if (profile?.role !== 'admin') return null;
     return collection(db, "users");
@@ -55,7 +55,7 @@ export default function AdminPage() {
 
   const logsQuery = useMemoFirebase(() => {
     if (profile?.role !== 'admin') return null;
-    return collection(db, "logs");
+    return query(collection(db, "logs"), orderBy("timestamp", "desc"));
   }, [profile]);
   
   const { data: logs } = useCollection(logsQuery);
@@ -69,9 +69,9 @@ export default function AdminPage() {
     const monthStart = startOfMonth(now);
 
     return {
-      today: logs.filter(l => l.date && isAfter(l.date.toDate(), dayStart)).length,
-      week: logs.filter(l => l.date && isAfter(l.date.toDate(), weekStart)).length,
-      month: logs.filter(l => l.date && isAfter(l.date.toDate(), monthStart)).length
+      today: logs.filter(l => l.timestamp && isAfter(l.timestamp.toDate(), dayStart)).length,
+      week: logs.filter(l => l.timestamp && isAfter(l.timestamp.toDate(), weekStart)).length,
+      month: logs.filter(l => l.timestamp && isAfter(l.timestamp.toDate(), monthStart)).length
     };
   }, [logs]);
 
@@ -322,8 +322,8 @@ export default function AdminPage() {
                             <Download className="w-5 h-5 text-primary" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold">{log.documentTitle}</p>
-                            <p className="text-xs text-muted-foreground">{log.email} • {log.date ? log.date.toDate().toLocaleString() : 'Just now'}</p>
+                            <p className="text-sm font-semibold">{log.fileName}</p>
+                            <p className="text-xs text-muted-foreground">{log.userEmail} • {log.timestamp ? log.timestamp.toDate().toLocaleString() : 'Just now'}</p>
                           </div>
                         </div>
                       </div>

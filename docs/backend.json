@@ -36,19 +36,18 @@
       },
       "required": ["title", "category", "program", "fileData", "fileName", "uploadDate", "downloadCount"]
     },
-    "DownloadLog": {
+    "ActivityLog": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "DownloadLog",
+      "title": "ActivityLog",
       "type": "object",
-      "description": "Audit logs for document downloads.",
+      "description": "Standardized audit logs for portal activities.",
       "properties": {
-        "email": { "type": "string", "format": "email" },
-        "program": { "type": "string" },
-        "documentTitle": { "type": "string" },
-        "docId": { "type": "string" },
-        "date": { "type": "string", "format": "date-time" }
+        "userEmail": { "type": "string", "format": "email" },
+        "fileName": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "action": { "type": "string", "enum": ["download", "upload", "login"] }
       },
-      "required": ["email", "documentTitle", "date"]
+      "required": ["userEmail", "fileName", "timestamp", "action"]
     }
   },
   "auth": {
@@ -64,8 +63,8 @@
       "description": "Metadata and Base64 encoded PDF files for the repository."
     },
     "/logs/{logId}": {
-      "schema": "DownloadLog",
-      "description": "Download activity logs for analytics and auditing."
+      "schema": "ActivityLog",
+      "description": "Standardized activity logs for analytics and auditing."
     }
   }
 }

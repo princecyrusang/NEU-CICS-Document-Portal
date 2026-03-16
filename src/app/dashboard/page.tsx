@@ -22,7 +22,6 @@ export default function DocumentGalleryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
-  // Sprint 3 & Permission Guard: Wait for profile before querying documents
   const docsQuery = useMemoFirebase(() => {
     if (!profile) return null;
     return collection(db, "documents");
@@ -49,13 +48,12 @@ export default function DocumentGalleryPage() {
     if (profile?.isBlocked) return;
 
     try {
-      // Sprint 4: Download Tracker
+      // Standardized Log Entry
       addDoc(collection(db, "logs"), {
-        email: profile?.email,
-        program: profile?.program || "Unassigned",
-        documentTitle: docTitle,
-        docId: docId,
-        date: serverTimestamp()
+        userEmail: profile?.email,
+        fileName: docTitle,
+        action: "download",
+        timestamp: serverTimestamp()
       });
 
       const docRef = doc(db, "documents", docId);

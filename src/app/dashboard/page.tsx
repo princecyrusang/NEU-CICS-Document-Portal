@@ -12,13 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, FileDown, ShieldAlert, GraduationCap, Lock, AlertCircle } from "lucide-react";
+import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, FileDown, ShieldAlert, GraduationCap, Lock, AlertCircle, AlertTriangle } from "lucide-react";
 import { DOCUMENT_CATEGORIES } from "@/app/lib/programs";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function DocumentGalleryPage() {
-  const { profile, logout, user } = useAuth();
+  const { profile, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
@@ -44,22 +44,22 @@ export default function DocumentGalleryPage() {
     if (profile?.isBlocked) return;
 
     try {
-      // Sprint 4: Download Tracker - Log with required fields
+      // Sprint 4: Download Tracker - Log the activity
       addDoc(collection(db, "logs"), {
         email: profile?.email,
-        program: profile?.program,
+        program: profile?.program || "Unassigned",
         documentTitle: docTitle,
         docId: docId,
         date: serverTimestamp()
       });
 
-      // Increment download count on the document
+      // Increment download count on the document metadata
       const docRef = doc(db, "documents", docId);
       updateDoc(docRef, {
         downloadCount: increment(1)
       });
 
-      // Convert Base64 to Blob and Download
+      // Convert Base64 to Blob and trigger local download
       const byteString = atob(base64Data.split(',')[1]);
       const mimeString = base64Data.split(',')[0].split(':')[1].split(';')[0];
       const ab = new ArrayBuffer(byteString.length);
@@ -79,7 +79,7 @@ export default function DocumentGalleryPage() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Error handling document download:", error);
+      console.error("Download failed:", error);
     }
   };
 
@@ -97,7 +97,7 @@ export default function DocumentGalleryPage() {
             <ThemeToggle />
             <div className="hidden lg:flex flex-col items-end border-r pr-4 border-border">
               <span className="text-sm font-semibold">{profile?.displayName}</span>
-              <span className="text-xs text-muted-foreground">{profile?.program}</span>
+              <span className="text-xs text-muted-foreground">{profile?.program || "Pending Setup"}</span>
             </div>
             <div className="flex items-center gap-2">
               {profile?.role === 'admin' && (
@@ -121,14 +121,18 @@ export default function DocumentGalleryPage() {
       </header>
 
       <main className="container mx-auto px-4 py-10 max-w-7xl">
-        {/* Block Enforcement UI Notice */}
+        {/* Sprint 3: Block Enforcement UI Notice */}
         {profile?.isBlocked && (
-          <Alert variant="destructive" className="mb-10 rounded-3xl border-2 bg-destructive/5 animate-pulse">
-            <AlertCircle className="h-6 w-6" />
-            <AlertTitle className="text-lg font-bold">Your account is restricted.</AlertTitle>
-            <AlertDescription className="text-base opacity-90">
-              Access to official document downloads has been suspended by the administration. Please contact the CICS office for more information.
-            </AlertDescription>
+          <Alert variant="destructive" className="mb-10 rounded-3xl border-2 bg-destructive/10 border-destructive animate-pulse py-6">
+            <div className="flex items-center gap-4">
+              <AlertTriangle className="h-8 w-8 text-destructive" />
+              <div>
+                <AlertTitle className="text-xl font-bold mb-1">Account Restricted</AlertTitle>
+                <AlertDescription className="text-lg opacity-90">
+                  ⚠️ Your account is currently restricted. Please contact the CICS office.
+                </AlertDescription>
+              </div>
+            </div>
           </Alert>
         )}
 
@@ -136,7 +140,7 @@ export default function DocumentGalleryPage() {
           <div className="w-full md:w-1/2 relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input 
-              placeholder="Search by document title..." 
+              placeholder="Search repository..." 
               className="pl-12 h-14 bg-secondary/50 border-border rounded-2xl focus:ring-primary/20" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -147,7 +151,7 @@ export default function DocumentGalleryPage() {
               <SelectTrigger className="w-full md:w-[280px] h-14 bg-secondary/50 border-border rounded-2xl">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4 text-primary" />
-                  <SelectValue placeholder="All Classifications" />
+                  <SelectValue placeholder="All Categories" />
                 </div>
               </SelectTrigger>
               <SelectContent className="rounded-2xl border-border bg-card">
@@ -184,10 +188,10 @@ export default function DocumentGalleryPage() {
                   <div className="flex flex-col gap-4">
                     <div className="flex items-center justify-between text-xs text-muted-foreground/60 border-t border-border pt-4">
                       <span className="flex items-center gap-1"><GraduationCap className="w-3 h-3" /> {doc.program === "All CICS" ? "All Programs" : doc.program}</span>
-                      <span className="flex items-center gap-1"><Download className="w-3 h-3" /> {doc.downloadCount || 0} downloads</span>
+                      <span className="flex items-center gap-1"><Download className="w-3 h-3" /> {doc.downloadCount || 0}</span>
                     </div>
                     <div className="flex items-center justify-end h-10">
-                      {/* Block Enforcement - Hide buttons when blocked */}
+                      {/* Sprint 3: Conditional Download Logic */}
                       {!profile?.isBlocked ? (
                         <Button 
                           size="sm" 
@@ -197,7 +201,7 @@ export default function DocumentGalleryPage() {
                           <FileDown className="w-4 h-4" /> Download PDF
                         </Button>
                       ) : (
-                        <Badge variant="outline" className="text-destructive border-destructive/20 gap-2 px-3 py-2 bg-destructive/5">
+                        <Badge variant="outline" className="text-destructive border-destructive/20 gap-2 px-3 py-2 bg-destructive/5 cursor-not-allowed">
                           <Lock className="w-3 h-3" /> Restricted
                         </Badge>
                       )}

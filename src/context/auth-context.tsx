@@ -65,11 +65,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const data = userDoc.data() as UserProfile;
             setProfile(data);
             
-            // Sprint 1: Forced Setup Check
-            // If program is missing, user MUST go to onboarding and cannot access dashboard
+            // Sprint 1: Forced Onboarding Guard
+            // Ensure students are redirected to setup if profile is incomplete
             if (!data.program && pathname !== "/onboarding" && pathname !== "/login") {
               router.push("/onboarding");
-            } else if (data.program && (pathname === "/onboarding" || pathname === "/login")) {
+            } else if (data.program && pathname === "/onboarding") {
               router.push("/dashboard");
             }
           } else {
@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
           }
         } catch (error) {
-          console.error("AuthContext: Profile sync failed", error);
+          console.error("AuthContext sync error:", error);
         }
       } else {
         if (isMounted) {

@@ -45,10 +45,10 @@ export default function AdminPage() {
   const docsQuery = useMemoFirebase(() => collection(db, "documents"), []);
   const { data: documents, isLoading: docsLoading } = useCollection(docsQuery);
 
-  // Analytics View - Logs Collection
   const logsQuery = useMemoFirebase(() => collection(db, "logs"), []);
   const { data: logs } = useCollection(logsQuery);
 
+  // Sprint 4: Period of Inquiry Analytics
   const analytics = useMemo(() => {
     if (!logs) return { today: 0, week: 0, month: 0 };
     
@@ -117,7 +117,7 @@ export default function AdminPage() {
         toast({ 
           variant: "destructive", 
           title: "File Limit Exceeded", 
-          description: "Max 700KB allowed for Firestore-stored PDFs." 
+          description: "Max 700KB allowed for database-stored PDFs." 
         });
         if (fileInputRef.current) fileInputRef.current.value = "";
         return;
@@ -153,7 +153,7 @@ export default function AdminPage() {
         createdAt: serverTimestamp()
       });
 
-      toast({ title: "Portal Updated", description: "New document entry successfully published." });
+      toast({ title: "Portal Updated", description: "Document published to repository." });
       setNewDoc({ title: "", category: DOCUMENT_CATEGORIES[0], program: "All CICS" });
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -170,12 +170,11 @@ export default function AdminPage() {
 
   const toggleBlockUser = async (userId: string, currentStatus: boolean) => {
     try {
-      // Block Logic: Update isBlocked toggle in the users document
       await updateDoc(doc(db, "users", userId), {
         isBlocked: !currentStatus,
         updatedAt: serverTimestamp()
       });
-      toast({ title: "Account Status Changed", description: `User restriction is now ${!currentStatus ? 'Active' : 'Disabled'}.` });
+      toast({ title: "Status Updated", description: `Access is now ${!currentStatus ? 'Blocked' : 'Unblocked'}.` });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Update Failed", description: error.message });
     }
@@ -208,22 +207,21 @@ export default function AdminPage() {
         <Tabs defaultValue="overview" className="space-y-10">
           <TabsList className="bg-secondary/50 p-1 rounded-2xl border border-border h-14 md:w-[600px] grid grid-cols-3">
             <TabsTrigger value="overview" className="gap-2 rounded-xl data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-              <BarChart3 className="w-4 h-4" /> Statistics
+              <BarChart3 className="w-4 h-4" /> Analytics
             </TabsTrigger>
             <TabsTrigger value="upload" className="gap-2 rounded-xl data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-              <FilePlus className="w-4 h-4" /> Add Assets
+              <FilePlus className="w-4 h-4" /> Management
             </TabsTrigger>
             <TabsTrigger value="users" className="gap-2 rounded-xl data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-              <Users className="w-4 h-4" /> Users
+              <Users className="w-4 h-4" /> Students
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-10">
-            {/* Download Analytics Dashboard - Period of Inquiry */}
             <div className="space-y-6">
               <div className="flex items-center gap-3">
                 <Activity className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl font-bold font-headline">Download Analytics</h2>
+                <h2 className="text-2xl font-bold font-headline">Download Statistics</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="glass-card border-none rounded-[1.5rem] bg-primary/5 hover:bg-primary/10 transition-colors">
@@ -257,8 +255,8 @@ export default function AdminPage() {
               {[
                 { label: 'Total Enrolled', value: stats.totalUsers, icon: Users, color: 'text-primary' },
                 { label: 'Blocked Access', value: stats.blockedUsers, icon: UserX, color: 'text-destructive' },
-                { label: 'Repo Assets', value: stats.totalDocs, icon: FileText, color: 'text-accent' },
-                { label: 'Overall Logs', value: logs?.length || 0, icon: Download, color: 'text-foreground' }
+                { label: 'Assets', value: stats.totalDocs, icon: FileText, color: 'text-accent' },
+                { label: 'Total Activity', value: logs?.length || 0, icon: Download, color: 'text-foreground' }
               ].map((item, i) => (
                 <Card key={i} className="glass-card border-none rounded-[1.5rem] card-glow">
                   <CardHeader className="pb-2">
@@ -275,9 +273,8 @@ export default function AdminPage() {
               <Card className="glass-card border-none rounded-[2rem]">
                 <CardHeader>
                   <CardTitle className="text-xl font-headline flex items-center gap-3">
-                    <TrendingUp className="w-6 h-6 text-primary" /> Repository Spread
+                    <TrendingUp className="w-6 h-6 text-primary" /> Category Distribution
                   </CardTitle>
-                  <CardDescription>File distribution by administrative category.</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[350px]">
                   {isClient && (
@@ -303,19 +300,18 @@ export default function AdminPage() {
 
               <Card className="glass-card border-none rounded-[2rem]">
                 <CardHeader>
-                  <CardTitle className="text-xl font-headline">Recent Download Logs</CardTitle>
-                  <CardDescription>Latest access history from the student portal.</CardDescription>
+                  <CardTitle className="text-xl font-headline">Recent Activity Log</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {logs?.slice(0, 6).map(log => (
-                      <div key={log.id} className="flex items-center justify-between p-4 bg-secondary/30 rounded-2xl hover:bg-secondary/50 transition-colors">
+                      <div key={log.id} className="flex items-center justify-between p-4 bg-secondary/30 rounded-2xl">
                         <div className="flex items-center gap-4">
                           <div className="bg-primary/10 p-2 rounded-xl">
                             <Download className="w-5 h-5 text-primary" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold">{log.documentTitle || log.docTitle}</p>
+                            <p className="text-sm font-semibold">{log.documentTitle}</p>
                             <p className="text-xs text-muted-foreground">{log.email} • {log.date ? log.date.toDate().toLocaleString() : 'Just now'}</p>
                           </div>
                         </div>
@@ -330,28 +326,28 @@ export default function AdminPage() {
           <TabsContent value="upload">
             <Card className="max-w-2xl mx-auto glass-card border-none rounded-[2.5rem]">
               <CardHeader className="pb-8">
-                <CardTitle className="text-2xl font-headline">Asset Ingestion</CardTitle>
-                <CardDescription>Publish new PDF resources (Max 700KB).</CardDescription>
+                <CardTitle className="text-2xl font-headline">Asset Repository</CardTitle>
+                <CardDescription>Upload new documents to the student portal.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold px-1">Asset Title</label>
+                    <label className="text-sm font-semibold px-1">Document Title</label>
                     <Input 
-                      placeholder="e.g. 1st Year Enrollment Procedure" 
+                      placeholder="e.g. OJT Requirements Checklist" 
                       value={newDoc.title}
                       onChange={(e) => setNewDoc({...newDoc, title: e.target.value})}
-                      className="h-14 bg-secondary/50 border-border rounded-2xl focus:ring-primary/20"
+                      className="h-14 bg-secondary/50 border-border rounded-2xl"
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold px-1">Classification</label>
+                      <label className="text-sm font-semibold px-1">Category</label>
                       <Select 
                         onValueChange={(v) => setNewDoc({...newDoc, category: v})} 
                         value={newDoc.category}
                       >
-                        <SelectTrigger className="h-14 bg-secondary/50 border-border rounded-2xl focus:ring-primary/20">
+                        <SelectTrigger className="h-14 bg-secondary/50 border-border rounded-2xl">
                           <SelectValue placeholder="Select Category" />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-border">
@@ -360,9 +356,9 @@ export default function AdminPage() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold px-1">Program Target</label>
+                      <label className="text-sm font-semibold px-1">Academic Program</label>
                       <Select onValueChange={(v) => setNewDoc({...newDoc, program: v})} value={newDoc.program}>
-                        <SelectTrigger className="h-14 bg-secondary/50 border-border rounded-2xl focus:ring-primary/20">
+                        <SelectTrigger className="h-14 bg-secondary/50 border-border rounded-2xl">
                           <SelectValue placeholder="Select Program" />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-border">
@@ -372,15 +368,15 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold px-1">PDF Payload</label>
+                    <label className="text-sm font-semibold px-1">PDF Document</label>
                     <div 
                       className="border-2 border-dashed border-border rounded-[2rem] p-12 flex flex-col items-center justify-center gap-4 bg-secondary/50 hover:bg-secondary transition-all cursor-pointer group"
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      <UploadCloud className="w-16 h-16 text-primary/40 group-hover:text-primary transition-colors" />
+                      <UploadCloud className="w-16 h-16 text-primary/40 group-hover:text-primary" />
                       <div className="text-center">
-                        <p className="font-bold text-lg">{selectedFile ? selectedFile.name : "Select PDF Document"}</p>
-                        <p className="text-xs text-muted-foreground mt-1">Files are stored directly in Firestore</p>
+                        <p className="font-bold text-lg">{selectedFile ? selectedFile.name : "Choose PDF File"}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Directly stored in Firestore (Max 700KB)</p>
                       </div>
                       <input 
                         type="file" 
@@ -391,9 +387,9 @@ export default function AdminPage() {
                       />
                     </div>
                   </div>
-                  <Button type="submit" className="w-full h-16 text-lg font-bold rounded-2xl shadow-xl shadow-primary/20" disabled={submitting}>
+                  <Button type="submit" className="w-full h-16 text-lg font-bold rounded-2xl" disabled={submitting}>
                     {submitting ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : <FileUp className="mr-2 h-6 w-6" />}
-                    Publish to Portal
+                    Publish Document
                   </Button>
                 </form>
               </CardContent>
@@ -403,8 +399,8 @@ export default function AdminPage() {
           <TabsContent value="users">
             <Card className="glass-card border-none rounded-[2.5rem]">
               <CardHeader>
-                <CardTitle className="text-2xl font-headline">Student Registry</CardTitle>
-                <CardDescription>Manage student access and role verification.</CardDescription>
+                <CardTitle className="text-2xl font-headline">Student Directory</CardTitle>
+                <CardDescription>Manage academic access and block status.</CardDescription>
               </CardHeader>
               <CardContent>
                 {usersLoading ? (
@@ -414,11 +410,11 @@ export default function AdminPage() {
                     <Table>
                       <TableHeader className="bg-secondary/50">
                         <TableRow className="border-border hover:bg-transparent">
-                          <TableHead className="py-6 font-bold">Student Identity</TableHead>
-                          <TableHead className="font-bold">Contact Email</TableHead>
-                          <TableHead className="font-bold">Academic Program</TableHead>
-                          <TableHead className="font-bold text-center">Security Status</TableHead>
-                          <TableHead className="text-right font-bold pr-8">Management</TableHead>
+                          <TableHead className="py-6 font-bold">Name</TableHead>
+                          <TableHead className="font-bold">Email</TableHead>
+                          <TableHead className="font-bold">Program</TableHead>
+                          <TableHead className="font-bold text-center">Status</TableHead>
+                          <TableHead className="text-right font-bold pr-8">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -427,13 +423,13 @@ export default function AdminPage() {
                             <TableCell className="font-bold py-6 pl-8">{user.displayName}</TableCell>
                             <TableCell className="text-muted-foreground">{user.email}</TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="border-border font-medium">
-                                {user.program || "Pending Selection"}
+                              <Badge variant="outline" className="border-border">
+                                {user.program || "Unconfigured"}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-center">
-                              <Badge variant={user.isBlocked ? "destructive" : "secondary"} className="rounded-lg px-3">
-                                {user.isBlocked ? "RESTRICTED" : "ACTIVE"}
+                              <Badge variant={user.isBlocked ? "destructive" : "secondary"}>
+                                {user.isBlocked ? "BLOCKED" : "ACTIVE"}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right pr-8">
@@ -442,10 +438,10 @@ export default function AdminPage() {
                                   variant={user.isBlocked ? "outline" : "destructive"} 
                                   size="sm"
                                   onClick={() => toggleBlockUser(user.id, user.isBlocked)}
-                                  className="gap-2 rounded-xl min-w-[120px] shadow-sm"
+                                  className="gap-2 rounded-xl min-w-[120px]"
                                 >
                                   {user.isBlocked ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4" />}
-                                  {user.isBlocked ? "Unblock" : "Block"}
+                                  {user.isBlocked ? "Unblock" : "Block User"}
                                 </Button>
                               )}
                             </TableCell>

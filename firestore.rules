@@ -2,49 +2,52 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper to verify the user is signed in with an official university email
     function isSignedIn() {
-      return request.auth != null && request.auth.token.email.endsWith('@neu.edu.ph');
+      return request.auth != null && 
+             request.auth.token.email.endsWith('@neu.edu.ph');
     }
     
-    function getUserData(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data;
-    }
-    
+    // Helper to check if a user is NOT blocked by admin
     function isNotBlocked() {
-      // Allow access if the user document doesn't exist yet (initial sync) 
-      // or if it exists and isBlocked is false.
+      let userId = request.auth.uid;
+      let userDocPath = /databases/$(database)/documents/users/$(userId);
       return isSignedIn() && (
-        !exists(/databases/$(database)/documents/users/$(request.auth.uid)) || 
-        getUserData(request.auth.uid).get('isBlocked', false) == false
+        !exists(userDocPath) || 
+        get(userDocPath).data.get('isBlocked', false) == false
       );
     }
     
+    // Helper to verify administrative privileges
     function isAdmin() {
+      let userId = request.auth.uid;
+      let userDocPath = /databases/$(database)/documents/users/$(userId);
       return isSignedIn() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-             getUserData(request.auth.uid).role == 'admin';
+             exists(userDocPath) && 
+             get(userDocPath).data.get('role', 'student') == 'admin';
     }
 
     match /users/{userId} {
       allow get: if isSignedIn();
       allow list: if isAdmin();
       allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if (isSignedIn() && request.auth.uid == userId && request.resource.data.role == resource.data.role) || isAdmin();
+      // Allow users to update their own profile (except for role changes), or admins to update everything
+      allow update: if (isSignedIn() && request.auth.uid == userId && request.resource.data.get('role', 'student') == resource.data.get('role', 'student')) || isAdmin();
       allow delete: if false;
     }
 
     match /documents/{docId} {
-      // Allow read for all authenticated users who are not blocked
+      // Allow read access for any verified student who isn't blocked
       allow read: if isNotBlocked();
       
-      // Allow write (create, update, delete) only for users with role == 'admin'
-      allow create, update, delete: if isAdmin();
+      // Restricted to admins only for content management
+      allow write: if isAdmin();
     }
 
     match /logs/{logId} {
-      // Allow students to log their downloads
+      // Students can record their download activity
       allow create: if isNotBlocked();
-      // Only admins can view the analytics logs
+      // Only admins can audit the logs
       allow read: if isAdmin();
     }
   }

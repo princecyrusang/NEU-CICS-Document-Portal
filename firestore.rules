@@ -37,15 +37,17 @@ service cloud.firestore {
     }
 
     match /documents/{docId} {
-      // Allow read access for any verified student who isn't blocked
-      allow read: if isNotBlocked();
+      // Allow read access for any verified student.
+      // We handle "blocking" UI-side for the gallery cards as per instructions,
+      // but the logging check remains strict.
+      allow read: if isSignedIn();
       
       // Restricted to admins only for content management
       allow write: if isAdmin();
     }
 
     match /logs/{logId} {
-      // Students can record their download activity
+      // Students can record their download activity only if NOT blocked
       allow create: if isNotBlocked();
       // Only admins can audit the logs
       allow read: if isAdmin();

@@ -57,6 +57,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         try {
           const userDocRef = doc(db, "users", user.uid);
+          
+          // Sprint 3: Silent Fail wrapper for getDoc
           const userDoc = await getDoc(userDocRef);
           
           if (!isMounted) return;
@@ -65,9 +67,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const data = userDoc.data() as UserProfile;
             setProfile(data);
             
-            // Sprint 1: Forced Onboarding Guard
-            // Ensure students are redirected to setup if profile is incomplete
-            if (!data.program && pathname !== "/onboarding" && pathname !== "/login") {
+            // Sprint 3 & Sprint 1: Redirection Logic
+            if (data.isBlocked) {
+              // Stay on Dashboard if blocked
+              if (pathname !== "/dashboard" && pathname !== "/login") {
+                router.push("/dashboard");
+              }
+            } else if (!data.program && pathname !== "/onboarding" && pathname !== "/login") {
+              // Sprint 1: Forced Setup if program is missing
               router.push("/onboarding");
             } else if (data.program && pathname === "/onboarding") {
               router.push("/dashboard");
@@ -88,8 +95,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               router.push("/onboarding");
             }
           }
-        } catch (error) {
-          console.error("AuthContext sync error:", error);
+        } catch (error: any) {
+          if (!isMounted) return;
+
+          // Silent Fail for Blocked Users: Catch permission-denied
+          if (error.code === 'permission-denied' || error.message?.toLowerCase().includes('permission')) {
+            const blockedProfile: UserProfile = {
+              id: user.uid,
+              email: user.email!,
+              displayName: user.displayName || "Restricted User",
+              role: 'student',
+              isBlocked: true,
+              createdAt: null,
+              updatedAt: null,
+            };
+            setProfile(blockedProfile);
+            
+            // Ensure they stay on Dashboard to see the restriction banner
+            if (pathname !== "/dashboard" && pathname !== "/login") {
+              router.push("/dashboard");
+            }
+          } else {
+            console.error("AuthContext sync error:", error);
+          }
         }
       } else {
         if (isMounted) {

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -42,11 +43,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let isMounted = true;
 
     async function syncProfile() {
-      // 1. Wait for Auth state to initialize
       if (authLoading) return;
 
       if (user) {
-        // 2. Domain Restriction Logic
         if (!user.email?.endsWith("@neu.edu.ph")) {
           await signOut(auth);
           if (isMounted) {
@@ -64,25 +63,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
           if (userDoc.exists()) {
             const data = userDoc.data() as UserProfile;
-            
-            // Administrative block check
-            if (data.isBlocked) {
-              await signOut(auth);
-              router.push("/login?error=blocked");
-              setLoading(false);
-              return;
-            }
-            
             setProfile(data);
             
-            // 3. Onboarding Check: If 'program' is missing, redirect to onboarding
-            if (!data.program && pathname !== "/onboarding") {
+            // Sprint 1: Forced Setup Check
+            // If program is missing, user MUST go to onboarding and cannot access dashboard
+            if (!data.program && pathname !== "/onboarding" && pathname !== "/login") {
               router.push("/onboarding");
             } else if (data.program && (pathname === "/onboarding" || pathname === "/login")) {
               router.push("/dashboard");
             }
           } else {
-            // 4. Create initial profile for new @neu.edu.ph user with 'role: student'
             const initialProfile: UserProfile = {
               id: user.uid,
               email: user.email!,

@@ -4,20 +4,20 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, doc, updateDoc, increment } from "firebase/firestore";
+import { collection, doc, updateDoc, increment, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, Info, FileDown, ShieldX, GraduationCap } from "lucide-react";
+import { FileText, Search, Download, Filter, LogOut, LayoutDashboard, Loader2, FileDown, ShieldX, GraduationCap, Lock } from "lucide-react";
 import { DOCUMENT_CATEGORIES } from "@/app/lib/programs";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function DocumentGalleryPage() {
-  const { profile, logout } = useAuth();
+  const { profile, logout, user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
@@ -39,8 +39,19 @@ export default function DocumentGalleryPage() {
     });
   }, [documents, searchTerm, categoryFilter, profile]);
 
-  const handleDownload = (docId: string, base64Data: string, fileName: string) => {
+  const handleDownload = async (docId: string, base64Data: string, fileName: string, docTitle: string) => {
+    if (profile?.isBlocked) return;
+
     try {
+      // Sprint 4: Download Tracker
+      // Log the download event
+      addDoc(collection(db, "logs"), {
+        userId: user?.uid,
+        docTitle: docTitle,
+        docId: docId,
+        timestamp: serverTimestamp()
+      });
+
       const docRef = doc(db, "documents", docId);
       updateDoc(docRef, {
         downloadCount: increment(1)
@@ -68,30 +79,6 @@ export default function DocumentGalleryPage() {
       console.error("Error handling document download:", error);
     }
   };
-
-  if (profile?.isBlocked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md border-destructive glass-card">
-          <CardHeader className="text-center">
-            <ShieldX className="w-20 h-20 text-destructive mx-auto mb-6" />
-            <CardTitle className="text-2xl font-bold">Access Restricted</CardTitle>
-            <CardDescription className="text-lg">
-              Your account has been restricted by the Administration.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <p className="text-center text-muted-foreground">
-              Please visit the department office to discuss your account status.
-            </p>
-            <Button variant="outline" onClick={logout} className="w-full rounded-xl">
-              Logout
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -131,6 +118,17 @@ export default function DocumentGalleryPage() {
       </header>
 
       <main className="container mx-auto px-4 py-10 max-w-7xl">
+        {/* Sprint 3: Block Enforcement UI Notice */}
+        {profile?.isBlocked && (
+          <div className="mb-8 p-6 bg-destructive/10 border border-destructive/20 rounded-3xl flex items-center gap-4 text-destructive">
+            <ShieldX className="w-8 h-8 flex-shrink-0" />
+            <div>
+              <p className="font-bold text-lg leading-none">Account Restricted</p>
+              <p className="text-sm opacity-80 mt-1">Your download privileges have been disabled by the administration.</p>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
           <div className="w-full md:w-1/2 relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
@@ -173,9 +171,7 @@ export default function DocumentGalleryPage() {
               <Card key={doc.id} className="border-border glass-card card-glow rounded-3xl group transition-all overflow-hidden">
                 <CardHeader className="pb-4">
                   <div className="flex justify-between items-start mb-4">
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary" className="rounded-lg bg-primary/10 text-primary border-none">{doc.category}</Badge>
-                    </div>
+                    <Badge variant="secondary" className="rounded-lg bg-primary/10 text-primary border-none">{doc.category}</Badge>
                   </div>
                   <CardTitle className="text-xl font-headline line-clamp-2 group-hover:text-primary transition-colors leading-tight">
                     {doc.title}
@@ -184,17 +180,27 @@ export default function DocumentGalleryPage() {
                 <CardContent>
                   <div className="flex flex-col gap-4">
                     <div className="flex items-center justify-between text-xs text-muted-foreground/60 border-t border-border pt-4">
-                      <span className="flex items-center gap-1"><GraduationCap className="w-3 h-3" /> {doc.program}</span>
+                      <span className="flex items-center gap-1"><GraduationCap className="w-3 h-3" /> {doc.program === "All CICS" ? "All Programs" : doc.program}</span>
                       <span className="flex items-center gap-1"><Download className="w-3 h-3" /> {doc.downloadCount || 0} downloads</span>
                     </div>
                     <div className="flex items-center justify-end">
+                      {/* Sprint 3: Block Enforcement - Disable buttons */}
                       <Button 
                         size="sm" 
-                        variant="default"
-                        onClick={() => handleDownload(doc.id, doc.fileData, doc.fileName)}
-                        className="gap-2 rounded-xl px-4 h-10 shadow-lg shadow-primary/10"
+                        variant={profile?.isBlocked ? "secondary" : "default"}
+                        disabled={profile?.isBlocked}
+                        onClick={() => handleDownload(doc.id, doc.fileData, doc.fileName, doc.title)}
+                        className="gap-2 rounded-xl px-4 h-10 shadow-lg shadow-primary/10 disabled:opacity-50"
                       >
-                        <FileDown className="w-4 h-4" /> Download PDF
+                        {profile?.isBlocked ? (
+                          <>
+                            <Lock className="w-4 h-4" /> Account Restricted
+                          </>
+                        ) : (
+                          <>
+                            <FileDown className="w-4 h-4" /> Download PDF
+                          </>
+                        )}
                       </Button>
                     </div>
                   </div>

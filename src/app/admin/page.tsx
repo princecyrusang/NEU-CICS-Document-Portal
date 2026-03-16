@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -16,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Users, ShieldAlert, Loader2, UserX, UserCheck, 
   ArrowLeft, FilePlus, LayoutDashboard, BarChart3, TrendingUp,
-  FileText, Download, UploadCloud, FileUp, GraduationCap
+  FileText, Download, UploadCloud, FileUp, GraduationCap, History
 } from "lucide-react";
 import Link from "next/link";
 import { ADMIN_PROGRAM_OPTIONS, DOCUMENT_CATEGORIES } from "@/app/lib/programs";
@@ -24,6 +25,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
 import { ThemeToggle } from "@/components/theme-toggle";
+import { startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
 
 export default function AdminPage() {
   const { profile } = useAuth();
@@ -32,19 +34,35 @@ export default function AdminPage() {
   const [isClient, setIsClient] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Hydration guard for charts
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Data Fetching
   const usersQuery = useMemoFirebase(() => collection(db, "users"), []);
   const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
 
   const docsQuery = useMemoFirebase(() => collection(db, "documents"), []);
   const { data: documents, isLoading: docsLoading } = useCollection(docsQuery);
 
-  // Stats Calculation
+  // Sprint 4: Analytics View - Logs Collection
+  const logsQuery = useMemoFirebase(() => collection(db, "logs"), []);
+  const { data: logs } = useCollection(logsQuery);
+
+  const analytics = useMemo(() => {
+    if (!logs) return { today: 0, week: 0, month: 0 };
+    
+    const now = new Date();
+    const dayStart = startOfDay(now);
+    const weekStart = startOfWeek(now);
+    const monthStart = startOfMonth(now);
+
+    return {
+      today: logs.filter(l => l.timestamp && isAfter(l.timestamp.toDate(), dayStart)).length,
+      week: logs.filter(l => l.timestamp && isAfter(l.timestamp.toDate(), weekStart)).length,
+      month: logs.filter(l => l.timestamp && isAfter(l.timestamp.toDate(), monthStart)).length
+    };
+  }, [logs]);
+
   const stats = useMemo(() => {
     if (!users || !documents) return { totalUsers: 0, totalDocs: 0, blockedUsers: 0, totalDownloads: 0 };
     return {
@@ -199,12 +217,40 @@ export default function AdminPage() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-10">
+            {/* Sprint 4: Analytics View - Time-based Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               <Card className="glass-card border-none rounded-[1.5rem] bg-primary/5">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="flex items-center gap-2 font-medium">
+                      <History className="w-4 h-4 text-primary" /> Downloads Today
+                    </CardDescription>
+                    <CardTitle className="text-4xl font-bold tracking-tight">{analytics.today}</CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card className="glass-card border-none rounded-[1.5rem] bg-primary/5">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="flex items-center gap-2 font-medium">
+                      <History className="w-4 h-4 text-primary" /> This Week
+                    </CardDescription>
+                    <CardTitle className="text-4xl font-bold tracking-tight">{analytics.week}</CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card className="glass-card border-none rounded-[1.5rem] bg-primary/5">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="flex items-center gap-2 font-medium">
+                      <History className="w-4 h-4 text-primary" /> This Month
+                    </CardDescription>
+                    <CardTitle className="text-4xl font-bold tracking-tight">{analytics.month}</CardTitle>
+                  </CardHeader>
+                </Card>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {[
                 { label: 'Total Enrolled', value: stats.totalUsers, icon: Users, color: 'text-primary' },
                 { label: 'Blocked Access', value: stats.blockedUsers, icon: UserX, color: 'text-destructive' },
                 { label: 'Repo Assets', value: stats.totalDocs, icon: FileText, color: 'text-accent' },
-                { label: 'Portal Downloads', value: stats.totalDownloads, icon: Download, color: 'text-foreground' }
+                { label: 'Total Logs', value: logs?.length || 0, icon: Download, color: 'text-foreground' }
               ].map((item, i) => (
                 <Card key={i} className="glass-card border-none rounded-[1.5rem] card-glow">
                   <CardHeader className="pb-2">
@@ -249,23 +295,22 @@ export default function AdminPage() {
 
               <Card className="glass-card border-none rounded-[2rem]">
                 <CardHeader>
-                  <CardTitle className="text-xl font-headline">Recent Portal Activity</CardTitle>
-                  <CardDescription>Latest document updates in the portal.</CardDescription>
+                  <CardTitle className="text-xl font-headline">Recent Download Logs</CardTitle>
+                  <CardDescription>Latest access history from the student portal.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {documents?.slice(0, 6).map(doc => (
-                      <div key={doc.id} className="flex items-center justify-between p-4 bg-secondary/30 rounded-2xl hover:bg-secondary/50 transition-colors">
+                    {logs?.slice(0, 6).map(log => (
+                      <div key={log.id} className="flex items-center justify-between p-4 bg-secondary/30 rounded-2xl hover:bg-secondary/50 transition-colors">
                         <div className="flex items-center gap-4">
                           <div className="bg-primary/10 p-2 rounded-xl">
-                            <FileText className="w-5 h-5 text-primary" />
+                            <Download className="w-5 h-5 text-primary" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold">{doc.title}</p>
-                            <p className="text-xs text-muted-foreground">{doc.category}</p>
+                            <p className="text-sm font-semibold">{log.docTitle}</p>
+                            <p className="text-xs text-muted-foreground">{log.timestamp ? log.timestamp.toDate().toLocaleString() : 'Just now'}</p>
                           </div>
                         </div>
-                        <Badge variant="outline" className="rounded-lg border-border">{new Date(doc.uploadDate).toLocaleDateString()}</Badge>
                       </div>
                     ))}
                   </div>

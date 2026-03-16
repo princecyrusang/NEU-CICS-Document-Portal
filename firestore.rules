@@ -3,7 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null && request.auth.token.email.endsWith('@neu.edu.ph');
     }
     
     function getUserData(userId) {
@@ -11,15 +11,23 @@ service cloud.firestore {
     }
     
     function isNotBlocked() {
-      return isSignedIn() && getUserData(request.auth.uid).isBlocked == false;
+      // Allow access if the user document doesn't exist yet (initial sync) 
+      // or if it exists and isBlocked is false.
+      return isSignedIn() && (
+        !exists(/databases/$(database)/documents/users/$(request.auth.uid)) || 
+        getUserData(request.auth.uid).get('isBlocked', false) == false
+      );
     }
     
     function isAdmin() {
-      return isSignedIn() && getUserData(request.auth.uid).role == 'admin';
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             getUserData(request.auth.uid).role == 'admin';
     }
 
     match /users/{userId} {
-      allow get, list: if isSignedIn();
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if (isSignedIn() && request.auth.uid == userId && request.resource.data.role == resource.data.role) || isAdmin();
       allow delete: if false;
@@ -31,6 +39,13 @@ service cloud.firestore {
       
       // Allow write (create, update, delete) only for users with role == 'admin'
       allow create, update, delete: if isAdmin();
+    }
+
+    match /logs/{logId} {
+      // Allow students to log their downloads
+      allow create: if isNotBlocked();
+      // Only admins can view the analytics logs
+      allow read: if isAdmin();
     }
   }
 }

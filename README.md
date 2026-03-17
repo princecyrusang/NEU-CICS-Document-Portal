@@ -25,5 +25,3 @@ An internal, secure document management system designed for the **New Era Univer
 2. Install dependencies: `npm install`
 3. Start development server: `npm run dev`
 
----
-*Developed for CICS - New Era University*
